@@ -15,6 +15,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 
     <style>
         :root {
@@ -384,13 +387,18 @@
         <header class="header">
             <h1>Data Ingest Dashboard</h1>
             <p>Upload, analyze, and send structured data to your backend.</p>
+            <div style="position: absolute; top: 20px; right: 20px;">
+                <button id="theme-toggle" style="background: var(--primary-color); color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer;">
+                    Toggle Theme
+                </button>
+            </div>
         </header>
 
         <nav class="main-tabs">
             <button id="home-tab-btn" class="main-tab">Home</button>
             <button id="industry-tab-btn" class="main-tab">Industry Insights</button>
             <button id="news-tab-btn" class="main-tab">News</button>
-            <button id="data-tab-btn" class="main-tab active">Data</button>
+            <button id="data-tab-btn" class="main-tab">Data</button>
             <button id="regional-tab-btn" class="main-tab">Regional Coverage</button>
             <button id="events-tab-btn" class="main-tab">Events</button>
             <button id="health-tab-btn" class="main-tab">Health & Nutrition</button>
@@ -568,34 +576,107 @@
             <!-- Home Tab Content -->
             <div id="home-view" class="view-content hidden">
                 <div class="card">
-                    <h2>Welcome to Data Ingest Dashboard</h2>
-                    <p>Your comprehensive solution for data processing, analysis, and storage.</p>
+                    <h2>Health, Safety, and Environment (HSE) Management</h2>
+                    <p>A comprehensive approach to managing workplace health, safety, and environmental risks for sustainable business operations.</p>
+                    
+                    <div style="margin-top: 2rem; text-align: center;">
+                        <img src="https://hsewatch.com/wp-content/uploads/2022/07/Difference-Between-a-HSE-Officer-and-HSE-Manager-2048x1365.webp" alt="HSE Officer vs HSE Manager" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    </div>
                     
                     <div class="stats-grid" style="margin-top: 2rem;">
                         <div class="stat-card" style="border-left-color: #4f46e5;">
-                            <h3>Data Processing</h3>
-                            <p>Advanced</p>
+                            <h3>ISO 45001</h3>
+                            <p>Occupational Health & Safety</p>
                         </div>
                         <div class="stat-card" style="border-left-color: #10b981;">
-                            <h3>Machine Learning</h3>
-                            <p>Predictive</p>
+                            <h3>ISO 14001</h3>
+                            <p>Environmental Management</p>
                         </div>
                         <div class="stat-card" style="border-left-color: #f97316;">
-                            <h3>Real-time Analytics</h3>
-                            <p>Insights</p>
+                            <h3>Continuous Improvement</h3>
+                            <p>PDCA Cycle</p>
                         </div>
                     </div>
                     
                     <div style="margin-top: 2rem;">
-                        <h3>Key Features</h3>
+                        <h3>What is HSE Management?</h3>
+                        <p>HSE (Health, Safety, and Environment) management is a systematic approach to managing risks and ensuring compliance with health, safety, and environmental regulations. It encompasses policies, procedures, and practices designed to protect workers, the public, and the environment from harm.</p>
+                        
+                        <h3 style="margin-top: 1.5rem;">Key Elements of HSE Management System</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                            <div style="border-left: 3px solid var(--primary-color); padding: 1rem; border-radius: 0 5px 5px 0; background: rgba(79, 70, 229, 0.05);">
+                                <h4 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center;">
+                                    <i class="bi bi-shield-lock" style="margin-right: 0.5rem;"></i>Leadership & Commitment
+                                </h4>
+                                <p style="margin-bottom: 0;">Senior management must demonstrate strong commitment to HSE by establishing clear goals, allocating resources, and actively participating in HSE initiatives.</p>
+                            </div>
+                            
+                            <div style="border-left: 3px solid var(--primary-color); padding: 1rem; border-radius: 0 5px 5px 0; background: rgba(79, 70, 229, 0.05);">
+                                <h4 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center;">
+                                    <i class="bi bi-exclamation-triangle" style="margin-right: 0.5rem;"></i>Risk Management
+                                </h4>
+                                <p style="margin-bottom: 0;">Systematic identification, assessment, and control of workplace hazards to prevent accidents and minimize risks.</p>
+                            </div>
+                            
+                            <div style="border-left: 3px solid var(--primary-color); padding: 1rem; border-radius: 0 5px 5px 0; background: rgba(79, 70, 229, 0.05);">
+                                <h4 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center;">
+                                    <i class="bi bi-people" style="margin-right: 0.5rem;"></i>Training & Competency
+                                </h4>
+                                <p style="margin-bottom: 0;">Ensuring all employees receive appropriate HSE training and possess the necessary skills to perform their duties safely.</p>
+                            </div>
+                            
+                            <div style="border-left: 3px solid var(--primary-color); padding: 1rem; border-radius: 0 5px 5px 0; background: rgba(79, 70, 229, 0.05);">
+                                <h4 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center;">
+                                    <i class="bi bi-arrow-repeat" style="margin-right: 0.5rem;"></i>Continuous Improvement
+                                </h4>
+                                <p style="margin-bottom: 0;">Regular monitoring, auditing, and review of HSE performance to identify opportunities for improvement and implement corrective actions.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>The PDCA Cycle in HSE Management</h3>
+                        <p>The Plan-Do-Check-Act (PDCA) cycle is a fundamental framework for continuous improvement in HSE management systems:</p>
+                        
+                        <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; justify-content: center;">
+                            <div style="flex: 1; min-width: 200px; text-align: center; padding: 1.5rem; border-radius: 8px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white;">
+                                <div style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">PLAN</div>
+                                <p style="margin: 0; opacity: 0.9;">Establish objectives and processes to deliver results in accordance with customer requirements and organizational policy.</p>
+                            </div>
+                            
+                            <div style="flex: 1; min-width: 200px; text-align: center; padding: 1.5rem; border-radius: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                                <div style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">DO</div>
+                                <p style="margin: 0; opacity: 0.9;">Implement the plan, execute the processes, and make the product or deliver the service.</p>
+                            </div>
+                            
+                            <div style="flex: 1; min-width: 200px; text-align: center; padding: 1.5rem; border-radius: 8px; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white;">
+                                <div style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">CHECK</div>
+                                <p style="margin: 0; opacity: 0.9;">Study the actual results and compare against the expected results to identify and analyze any differences.</p>
+                            </div>
+                            
+                            <div style="flex: 1; min-width: 200px; text-align: center; padding: 1.5rem; border-radius: 8px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">
+                                <div style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">ACT</div>
+                                <p style="margin: 0; opacity: 0.9;">Take action to continually improve process performance based on analysis and learning.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>Benefits of Effective HSE Management</h3>
                         <ul style="margin-top: 1rem; padding-left: 1.5rem;">
-                            <li>Multi-format support (.xlsx, .csv, .xlsm)</li>
-                            <li>Advanced data cleaning and validation</li>
-                            <li>Interactive dashboard with visualizations</li>
-                            <li>Direct integration with Google Firestore</li>
-                            <li>Machine learning model training and predictions</li>
-                            <li>Secure and scalable architecture</li>
+                            <li><strong>Worker Protection:</strong> Reduced workplace injuries, illnesses, and fatalities</li>
+                            <li><strong>Legal Compliance:</strong> Adherence to health, safety, and environmental regulations</li>
+                            <li><strong>Cost Savings:</strong> Decreased insurance premiums, workers' compensation claims, and regulatory fines</li>
+                            <li><strong>Reputation Enhancement:</strong> Improved public image and stakeholder confidence</li>
+                            <li><strong>Operational Efficiency:</strong> Better resource utilization and reduced downtime</li>
+                            <li><strong>Sustainability:</strong> Minimized environmental impact and responsible resource management</li>
                         </ul>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; padding: 1.5rem; border-radius: 8px; background: rgba(79, 70, 229, 0.05); border-left: 4px solid var(--primary-color);">
+                        <h3 style="margin-top: 0; color: var(--primary-color);">International Standards</h3>
+                        <p>Implementing internationally recognized standards such as ISO 45001 for occupational health and safety and ISO 14001 for environmental management provides organizations with proven frameworks for effective HSE management.</p>
+                        <p style="margin-bottom: 0;">These standards offer systematic approaches to identifying hazards, assessing risks, implementing controls, and continuously improving performance in health, safety, and environmental protection.</p>
                     </div>
                 </div>
             </div>
@@ -603,58 +684,226 @@
             <!-- About Us Tab Content -->
             <div id="about-view" class="view-content hidden">
                 <div class="card">
-            <!-- About Us Tab Content -->
-            <div id="about-view" class="view-content hidden">
-                <div class="card">
-                    <h2>About Us</h2>
-                    <p>Data Ingest Dashboard is a cutting-edge solution designed to streamline data processing workflows for businesses of all sizes.</p>
+                    <nav class="main-tabs" style="margin-bottom: 1rem; border-bottom: none;">
+                        <button id="about-us-subtab-btn" class="main-tab active">About Us</button>
+                        <button id="developer-subtab-btn" class="main-tab">Developer</button>
+                        <button id="about-me-subtab-btn" class="main-tab">About Me</button>
+                    </nav>
                     
-                    <div style="margin-top: 2rem;">
-                        <h3>Our Mission</h3>
-                        <p>To empower organizations with powerful data processing tools that transform raw data into actionable insights.</p>
+                    <!-- About Us Sub-view -->
+                    <div id="about-us-subview" class="view-content">
+                        <div style="text-align: center; margin-bottom: 2rem;">
+                            <div style="width: 200px; height: 200px; border-radius: 50%; margin: 0 auto 1.5rem; overflow: hidden; border: 5px solid var(--primary-color); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);">
+                                <img src="https://tse1.mm.bing.net/th/id/OIP.qNX-82tHe-czpKb2ThxBcwHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                            </div>
+                            <h2>MR. Ahmed abbas</h2>
+                            <h5 style="color: var(--subtle-text); margin-top: 1rem;">EHS Manager at Trojan General Contracting LLC</h5>
+                            <div style="margin-top: 1rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                                <p>Trojan General Contracting LLC<br>
+                                Universität Bremen<br>
+                                Abu Dhabi Emirate, United Arab Emirates</p>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div style="margin-top: 2rem;">
-                        <h3>Our Team</h3>
-                        <p>Our team consists of data scientists, software engineers, and UX designers who are passionate about creating intuitive solutions for complex data challenges.</p>
+                    <!-- Developer Sub-view -->
+                    <div id="developer-subview" class="view-content hidden">
+                        <h2 style="text-align: center; margin-bottom: 2rem;">Developer Information</h2>
+                        <p style="text-align: center; max-width: 800px; margin: 0 auto 2rem; color: var(--subtle-text);">Technical information about the Data Ingest Dashboard platform and development practices.</p>
+                        
+                        <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2rem;">
+                            <div style="flex: 1; min-width: 300px;">
+                                <div class="card" style="height: 100%;">
+                                    <div class="card-body">
+                                        <h4 class="card-title" style="color: var(--primary-color); font-weight: 600; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; display: inline-block; margin-bottom: 1rem;">
+                                            <i class="bi bi-stack" style="margin-right: 0.5rem;"></i>Technology Stack
+                                        </h4>
+                                        <ul style="list-style: none; padding: 0; margin: 0;">
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                                                <i class="bi bi-code-slash" style="color: var(--primary-color); margin-right: 0.75rem;"></i>
+                                                <div>
+                                                    <strong>Frontend:</strong> HTML5, CSS3, JavaScript, Chart.js
+                                                </div>
+                                            </li>
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                                                <i class="bi bi-server" style="color: var(--primary-color); margin-right: 0.75rem;"></i>
+                                                <div>
+                                                    <strong>Backend:</strong> Python Flask, Pandas, Scikit-learn
+                                                </div>
+                                            </li>
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                                                <i class="bi bi-database" style="color: var(--primary-color); margin-right: 0.75rem;"></i>
+                                                <div>
+                                                    <strong>Database:</strong> Google Firestore
+                                                </div>
+                                            </li>
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                                                <i class="bi bi-file-earmark-spreadsheet" style="color: var(--primary-color); margin-right: 0.75rem;"></i>
+                                                <div>
+                                                    <strong>File Processing:</strong> SheetJS (xlsx)
+                                                </div>
+                                            </li>
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                                                <i class="bi bi-box" style="color: var(--primary-color); margin-right: 0.75rem;"></i>
+                                                <div>
+                                                    <strong>Deployment:</strong> Docker, Heroku
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="flex: 1; min-width: 300px;">
+                                <div class="card" style="height: 100%;">
+                                    <div class="card-body">
+                                        <h4 class="card-title" style="color: var(--primary-color); font-weight: 600; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; display: inline-block; margin-bottom: 1rem;">
+                                            <i class="bi bi-diagram-3" style="margin-right: 0.5rem;"></i>Development Guidelines
+                                        </h4>
+                                        <ul style="list-style: none; padding: 0; margin: 0;">
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                                                <i class="bi bi-check-circle-fill" style="color: var(--success-color); margin-right: 0.75rem;"></i>
+                                                <div>Follow RESTful API design principles</div>
+                                            </li>
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                                                <i class="bi bi-check-circle-fill" style="color: var(--success-color); margin-right: 0.75rem;"></i>
+                                                <div>Implement proper error handling and logging</div>
+                                            </li>
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                                                <i class="bi bi-check-circle-fill" style="color: var(--success-color); margin-right: 0.75rem;"></i>
+                                                <div>Ensure data validation and sanitization</div>
+                                            </li>
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                                                <i class="bi bi-check-circle-fill" style="color: var(--success-color); margin-right: 0.75rem;"></i>
+                                                <div>Maintain consistent code style and documentation</div>
+                                            </li>
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem; display: flex; align-items: center;">
+                                                <i class="bi bi-check-circle-fill" style="color: var(--success-color); margin-right: 0.75rem;"></i>
+                                                <div>Write unit tests for all new functionality</div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <h4 class="card-title" style="color: var(--primary-color); font-weight: 600; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; display: inline-block; margin-bottom: 1rem;">
+                                    <i class="bi bi-link-45deg" style="margin-right: 0.5rem;"></i>API Endpoints
+                                </h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                                    <div style="border-left: 3px solid var(--primary-color); padding: 1rem; border-radius: 0 5px 5px 0; background: rgba(79, 70, 229, 0.05);">
+                                        <h5 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center;">
+                                            <i class="bi bi-arrow-right-circle" style="margin-right: 0.5rem;"></i>POST /api/predict
+                                        </h5>
+                                        <p style="margin-bottom: 0;">Machine learning prediction endpoint for data analysis and forecasting.</p>
+                                    </div>
+                                    
+                                    <div style="border-left: 3px solid var(--primary-color); padding: 1rem; border-radius: 0 5px 5px 0; background: rgba(79, 70, 229, 0.05);">
+                                        <h5 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center;">
+                                            <i class="bi bi-arrow-right-circle" style="margin-right: 0.5rem;"></i>POST /api/process
+                                        </h5>
+                                        <p style="margin-bottom: 0;">Data processing and cleaning endpoint for structured data transformation.</p>
+                                    </div>
+                                    
+                                    <div style="border-left: 3px solid var(--primary-color); padding: 1rem; border-radius: 0 5px 5px 0; background: rgba(79, 70, 229, 0.05);">
+                                        <h5 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center;">
+                                            <i class="bi bi-arrow-right-circle" style="margin-right: 0.5rem;"></i>POST /api/visualize
+                                        </h5>
+                                        <p style="margin-bottom: 0;">Data visualization endpoint for creating interactive charts and graphs.</p>
+                                    </div>
+                                    
+                                    <div style="border-left: 3px solid var(--primary-color); padding: 1rem; border-radius: 0 5px 5px 0; background: rgba(79, 70, 229, 0.05);">
+                                        <h5 style="margin-top: 0; color: var(--primary-color); display: flex; align-items: center;">
+                                            <i class="bi bi-arrow-right-circle" style="margin-right: 0.5rem;"></i>POST /api/upload-to-firestore
+                                        </h5>
+                                        <p style="margin-bottom: 0;">Direct data upload to Firestore for persistent storage and retrieval.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div style="margin-top: 2rem;">
-                        <h3>Why Choose Us?</h3>
-                        <ul style="margin-top: 1rem; padding-left: 1.5rem;">
-                            <li>Industry-leading data processing algorithms</li>
-                            <li>User-friendly interface designed for productivity</li>
-                            <li>Robust security and compliance features</li>
-                            <li>24/7 technical support</li>
-                            <li>Regular updates and feature enhancements</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <!-- About Me Tab Content -->
-                <div class="card" style="margin-top: 2rem;">
-                    <h2>About Me</h2>
-                    <p>As the lead developer of the Data Ingest Dashboard, I'm passionate about creating tools that make data processing accessible and efficient for everyone.</p>
-                    
-                    <div style="margin-top: 2rem;">
-                        <h3>My Background</h3>
-                        <p>I have over 10 years of experience in data engineering and software development, with a focus on building scalable data processing solutions for enterprise clients.</p>
-                    </div>
-                    
-                    <div style="margin-top: 2rem;">
-                        <h3>My Vision</h3>
-                        <p>I believe that powerful data tools should be intuitive and accessible. My goal is to bridge the gap between complex data processing capabilities and user-friendly interfaces.</p>
-                    </div>
-                    
-                    <div style="margin-top: 2rem;">
-                        <h3>Technical Expertise</h3>
-                        <ul style="margin-top: 1rem; padding-left: 1.5rem;">
-                            <li>Advanced data processing algorithms</li>
-                            <li>Cloud architecture and deployment</li>
-                            <li>Machine learning model integration</li>
-                            <li>UI/UX design for data applications</li>
-                            <li>Database optimization and management</li>
-                        </ul>
+                    <!-- About Me Sub-view -->
+                    <div id="about-me-subview" class="view-content hidden">
+                        <div style="text-align: center; margin-bottom: 2rem;">
+                            <div style="width: 200px; height: 200px; border-radius: 50%; margin: 0 auto 1.5rem; overflow: hidden; border: 5px solid var(--primary-color); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);">
+                                <img src="Elius.jpg" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                            </div>
+                            <h2>ELIUS D.A</h2>
+                            <h5 style="color: var(--subtle-text);">HSE Professional & Developer</h5>
+                            <div style="margin: 1.5rem 0;">
+                                <a href="https://wa.me/971563892557" target="_blank" style="display: inline-block; margin: 0 0.5rem 0.5rem 0; border-radius: 50px; padding: 0.5rem 1.2rem; transition: all 0.3s ease; background-color: var(--success-color); color: white; text-decoration: none;">
+                                    <i class="bi bi-whatsapp" style="margin-right: 0.5rem;"></i>WhatsApp
+                                </a>
+                                <a href="mailto:niwamanyaelius95@gmail.com" target="_blank" style="display: inline-block; margin: 0 0.5rem 0.5rem 0; border-radius: 50px; padding: 0.5rem 1.2rem; transition: all 0.3s ease; background-color: var(--primary-color); color: white; text-decoration: none;">
+                                    <i class="bi bi-envelope" style="margin-right: 0.5rem;"></i>Email
+                                </a>
+                                <a href="https://www.linkedin.com/in/elius-niwamanya-026228187/" target="_blank" style="display: inline-block; margin: 0 0.5rem 0.5rem 0; border-radius: 50px; padding: 0.5rem 1.2rem; transition: all 0.3s ease; background-color: var(--primary-color); color: white; text-decoration: none;">
+                                    <i class="bi bi-linkedin" style="margin-right: 0.5rem;"></i>LinkedIn
+                                </a>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 1.5rem;">
+                            <div style="flex: 1; min-width: 300px;">
+                                <div class="card" style="height: 100%;">
+                                    <div class="card-body">
+                                        <h4 class="card-title" style="color: var(--primary-color); font-weight: 600; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; display: inline-block; margin-bottom: 1rem;">
+                                            <i class="bi bi-person-lines-fill" style="margin-right: 0.5rem;"></i>Professional Profile
+                                        </h4>
+                                        <ul style="list-style: none; padding: 0; margin: 0;">
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem;">
+                                                <i class="bi bi-check-circle-fill" style="color: var(--success-color); margin-right: 0.5rem;"></i>
+                                                Lifting Supervisor
+                                            </li>
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem;">
+                                                <i class="bi bi-check-circle-fill" style="color: var(--success-color); margin-right: 0.5rem;"></i>
+                                                HSE Professional
+                                            </li>
+                                            <li style="background: transparent; border: none; border-left: 3px solid var(--primary-color); margin-bottom: 0.5rem; border-radius: 0 5px 5px 0; transition: all 0.3s ease; padding: 0.5rem 1rem;">
+                                                <i class="bi bi-check-circle-fill" style="color: var(--success-color); margin-right: 0.5rem;"></i>
+                                                Web Developer
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="flex: 1; min-width: 300px;">
+                                <div class="card" style="height: 100%;">
+                                    <div class="card-body">
+                                        <h4 class="card-title" style="color: var(--primary-color); font-weight: 600; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; display: inline-block; margin-bottom: 1rem;">
+                                            <i class="bi bi-telephone-fill" style="margin-right: 0.5rem;"></i>Contact Information
+                                        </h4>
+                                        <ul style="list-style: none; padding: 0; margin: 0;">
+                                            <li style="display: flex; align-items: center; padding: 0.5rem 1rem;">
+                                                <i class="bi bi-telephone-fill" style="color: var(--primary-color); margin-right: 1rem;"></i>
+                                                <div>
+                                                    <h6 style="margin-bottom: 0;">Phone</h6>
+                                                    <p style="margin-bottom: 0;">+971 56 389 2557</p>
+                                                </div>
+                                            </li>
+                                            <li style="display: flex; align-items: center; padding: 0.5rem 1rem;">
+                                                <i class="bi bi-envelope-fill" style="color: var(--primary-color); margin-right: 1rem;"></i>
+                                                <div>
+                                                    <h6 style="margin-bottom: 0;">Email</h6>
+                                                    <p style="margin-bottom: 0;">niwamanyaelius95@gmail.com</p>
+                                                </div>
+                                            </li>
+                                            <li style="display: flex; align-items: center; padding: 0.5rem 1rem;">
+                                                <i class="bi bi-geo-alt-fill" style="color: var(--primary-color); margin-right: 1rem;"></i>
+                                                <div>
+                                                    <h6 style="margin-bottom: 0;">Location</h6>
+                                                    <p style="margin-bottom: 0;">Dubai, UAE</p>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -802,39 +1051,37 @@
                     <h2>Health & Nutrition</h2>
                     <p>Explore data-driven insights in health and nutrition.</p>
                     
-                    <div style="margin-top: 2rem;">
-                        <div class="stats-grid">
-                            <div class="stat-card" style="border-left-color: #4f46e5;">
-                                <h3>Nutrition Studies</h3>
-                                <p>127</p>
-                            </div>
-                            <div class="stat-card" style="border-left-color: #10b981;">
-                                <h3>Health Datasets</h3>
-                                <p>42</p>
-                            </div>
-                            <div class="stat-card" style="border-left-color: #f97316;">
-                                <h3>Research Papers</h3>
-                                <p>89</p>
-                            </div>
+                    <div style="margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1.5rem;">
+                        <div class="stat-card" style="border-left-color: #4f46e5; flex: 1; min-width: 200px;">
+                            <h3>Nutrition Studies</h3>
+                            <p>127</p>
+                        </div>
+                        <div class="stat-card" style="border-left-color: #10b981; flex: 1; min-width: 200px;">
+                            <h3>Health Datasets</h3>
+                            <p>42</p>
+                        </div>
+                        <div class="stat-card" style="border-left-color: #f97316; flex: 1; min-width: 200px;">
+                            <h3>Research Papers</h3>
+                            <p>89</p>
                         </div>
                     </div>
                     
                     <div style="margin-top: 2rem;">
                         <h3>Latest Research</h3>
-                        <div style="margin-top: 1rem;">
-                            <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                        <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 1.5rem;">
+                            <div style="flex: 1; min-width: 300px; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
                                 <h4>Balanced Diet Impact on Cognitive Performance</h4>
                                 <p style="color: var(--subtle-text); font-size: 0.9rem;">Published: September 10, 2025</p>
                                 <p>Our analysis of 5,000+ participants shows a strong correlation between Mediterranean-style diets and improved cognitive test scores across all age groups.</p>
                             </div>
                             
-                            <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <div style="flex: 1; min-width: 300px; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
                                 <h4>Hydration and Physical Performance Metrics</h4>
                                 <p style="color: var(--subtle-text); font-size: 0.9rem;">Published: August 22, 2025</p>
                                 <p>Data from professional athletes demonstrates optimal hydration levels can improve endurance by up to 15% during high-intensity activities.</p>
                             </div>
                             
-                            <div>
+                            <div style="flex: 1; min-width: 300px;">
                                 <h4>Microbiome Diversity and Immune System Strength</h4>
                                 <p style="color: var(--subtle-text); font-size: 0.9rem;">Published: July 30, 2025</p>
                                 <p>Our machine learning models reveal that dietary fiber intake is the strongest predictor of healthy gut microbiome diversity.</p>
@@ -995,6 +1242,10 @@
         // View & Tab elements
         const homeTabBtn = document.getElementById('home-tab-btn');
         const industryTabBtn = document.getElementById('industry-tab-btn');
+
+        // Theme toggle element
+        const themeToggle = document.getElementById('theme-toggle');
+
         const newsTabBtn = document.getElementById('news-tab-btn');
         const dataTabBtn = document.getElementById('data-tab-btn');
         const regionalTabBtn = document.getElementById('regional-tab-btn');
@@ -1014,6 +1265,16 @@
         const dashboardSubView = document.getElementById('dashboard-subview');
         const uploadedDataSubView = document.getElementById('uploaded-data-subview');
         
+        // About Us sub-tab elements
+        const aboutUsSubTabBtn = document.getElementById('about-us-subtab-btn');
+        const developerSubTabBtn = document.getElementById('developer-subtab-btn');
+        const aboutMeSubTabBtn = document.getElementById('about-me-subtab-btn');
+        
+        // About Us sub-view elements
+        const aboutUsSubView = document.getElementById('about-us-subview');
+        const developerSubView = document.getElementById('developer-subview');
+        const aboutMeSubView = document.getElementById('about-me-subview');
+
         const homeView = document.getElementById('home-view');
         const industryView = document.getElementById('industry-view');
         const newsView = document.getElementById('news-view');
@@ -1114,8 +1375,17 @@
         sheetSelector.addEventListener('change', updateColumnSelector);
         columnSelector.addEventListener('change', analyzeCurrentColumn);
         
+        // Theme toggle event listener
+        themeToggle.addEventListener('click', toggleTheme);
+
         // Firebase data viewer event listeners
         refreshCollectionsBtn.addEventListener('click', refreshCollections);
+
+        // About Us sub-tab event listeners
+        aboutUsSubTabBtn.addEventListener('click', () => switchAboutUsSubView('about-us'));
+        developerSubTabBtn.addEventListener('click', () => switchAboutUsSubView('developer'));
+        aboutMeSubTabBtn.addEventListener('click', () => switchAboutUsSubView('about-me'));
+
         collectionSelector.addEventListener('change', loadCollectionData);
         prevPageBtn.addEventListener('click', () => changePage(-1));
         nextPageBtn.addEventListener('click', () => changePage(1));
@@ -2738,9 +3008,11 @@
             } else if (viewName === 'about') {
                 aboutView.classList.remove('hidden');
                 aboutTabBtn.classList.add('active');
+                // When switching to about view, show the about-us sub-view by default
+                switchAboutUsSubView('about-us');
             }
         }
-        
+
         function switchDataSubView(viewName) {
             // Hide all data sub-views
             ingestSubView.classList.add('hidden');
@@ -2766,6 +3038,30 @@
                 if (isFirebaseInitialized) {
                     autoLoadUploadedData();
                 }
+            }
+        }
+
+        function switchAboutUsSubView(viewName) {
+            // Hide all About Us sub-views
+            aboutUsSubView.classList.add('hidden');
+            developerSubView.classList.add('hidden');
+            aboutMeSubView.classList.add('hidden');
+            
+            // Remove active class from all About Us sub-tabs
+            aboutUsSubTabBtn.classList.remove('active');
+            developerSubTabBtn.classList.remove('active');
+            aboutMeSubTabBtn.classList.remove('active');
+            
+            // Show the selected sub-view
+            if (viewName === 'about-us') {
+                aboutUsSubView.classList.remove('hidden');
+                aboutUsSubTabBtn.classList.add('active');
+            } else if (viewName === 'developer') {
+                developerSubView.classList.remove('hidden');
+                developerSubTabBtn.classList.add('active');
+            } else if (viewName === 'about-me') {
+                aboutMeSubView.classList.remove('hidden');
+                aboutMeSubTabBtn.classList.add('active');
             }
         }
 
@@ -2833,6 +3129,32 @@
 
             return sanitized === '' ? 'unnamed_field' : sanitized;
         }
+        
+        function toggleTheme() {
+            const root = document.documentElement;
+            const isDark = root.style.getPropertyValue('--background-color') === '#1e293b';
+            
+            if (isDark) {
+                // Switch to light theme
+                root.style.setProperty('--background-color', '#f8fafc');
+                root.style.setProperty('--card-bg-color', '#ffffff');
+                root.style.setProperty('--text-color', '#334155');
+                root.style.setProperty('--heading-color', '#0f172a');
+                root.style.setProperty('--border-color', '#e2e8f0');
+                root.style.setProperty('--subtle-text', '#64748b');
+                themeToggle.textContent = 'Toggle Theme';
+            } else {
+                // Switch to dark theme
+                root.style.setProperty('--background-color', '#1e293b');
+                root.style.setProperty('--card-bg-color', '#334155');
+                root.style.setProperty('--text-color', '#e2e8f0');
+                root.style.setProperty('--heading-color', '#f1f5f9');
+                root.style.setProperty('--border-color', '#475569');
+                root.style.setProperty('--subtle-text', '#94a3b8');
+                themeToggle.textContent = 'Toggle Theme';
+            }
+        }
     </script>
 </body>
+</html>
 </html>

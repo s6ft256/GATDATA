@@ -18,12 +18,30 @@ import json
 # Initialize Flask app
 app = Flask(__name__)
 
-# Initialize Firebase Admin SDK
+# Initialize Firebase Admin SDK with error handling
+db = None
 if not firebase_admin._apps:
-    cred = credentials.Certificate("path/to/serviceAccountKey.json")
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
+    try:
+        # Try to initialize with service account key
+        cred = credentials.Certificate("serviceAccountKey.json")
+        firebase_admin.initialize_app(cred)
+        db = firestore.client()
+    except FileNotFoundError:
+        # If service account key is not found, initialize with default credentials
+        # This will work in Google Cloud environments
+        try:
+            firebase_admin.initialize_app()
+            db = firestore.client()
+        except Exception as e:
+            # If all else fails, set db to None and disable Firestore functionality
+            print("Warning: Firebase not initialized. Firestore functionality will be disabled.")
+            print(f"Error: {e}")
+            db = None
+    except Exception as e:
+        # Handle any other Firebase initialization errors
+        print("Warning: Firebase not initialized due to an error. Firestore functionality will be disabled.")
+        print(f"Error: {e}")
+        db = None
 
 # Sample ML model endpoint
 @app.route('/api/predict', methods=['POST'])
