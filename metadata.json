@@ -1,0 +1,4 @@
+{
+  "name": "data-ingest-dashboard",
+  "description": "A client-side web application to upload Excel/CSV files, preview data, and insert it into Google Firestore with interactive analytics dashboard."
+}

@@ -1,0 +1,24 @@
+{
+  "name": "data-ingest-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A client-side web application to upload Excel/CSV files and send data to Google Firestore",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "backend:dev": "cd backend && python app.py",
+    "backend:install": "cd backend && pip install -r requirements.txt",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}

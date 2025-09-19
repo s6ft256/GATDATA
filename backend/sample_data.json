@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "John Doe",
+    "age": 30,
+    "department": "Engineering",
+    "salary": 75000,
+    "join_date": "2020-01-15"
+  },
+  {
+    "id": 2,
+    "name": "Jane Smith",
+    "age": 28,
+    "department": "Marketing",
+    "salary": 65000,
+    "join_date": "2020-03-22"
+  },
+  {
+    "id": 3,
+    "name": "Bob Johnson",
+    "age": 35,
+    "department": "Sales",
+    "salary": 70000,
+    "join_date": "2019-11-10"
+  },
+  {
+    "id": 4,
+    "name": "Alice Brown",
+    "age": 32,
+    "department": "Engineering",
+    "salary": 80000,
+    "join_date": "2020-07-05"
+  },
+  {
+    "id": 5,
+    "name": "Charlie Wilson",
+    "age": 29,
+    "department": "HR",
+    "salary": 60000,
+    "join_date": "2021-02-18"
+  }
+]

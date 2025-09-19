@@ -1,0 +1,2838 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to Database Ingest Tool</title>
+    
+    <!-- CDN for SheetJS (xlsx) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- CDN for Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    
+    <!-- Google Fonts for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #4f46e5; /* Indigo 600 */
+            --primary-hover: #4338ca; /* Indigo 700 */
+            --danger-color: #ef4444; /* Red 500 */
+            --success-color: #22c55e; /* Green 500 */
+            --warning-color: #f97316; /* Orange 500 */
+            --background-color: #f8fafc; /* Slate 50 */
+            --card-bg-color: #ffffff;
+            --text-color: #334155; /* Slate 700 */
+            --heading-color: #0f172a; /* Slate 900 */
+            --border-color: #e2e8f0; /* Slate 200 */
+            --subtle-text: #64748b; /* Slate 500 */
+            --shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --border-radius: 0.75rem;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-image: linear-gradient(rgba(248, 250, 252, 0.85), rgba(248, 250, 252, 0.85)), url('https://www.technogenie.com/images/upload/sections/jobs/23-ingenierie-petrochimie.jpg');
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--heading-color);
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            color: var(--subtle-text);
+            font-size: 1.125rem;
+            margin-top: 0.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .main-tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+        
+        .main-tabs::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .main-tabs::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 3px;
+        }
+        
+        .main-tab {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--subtle-text);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -1px;
+            transition: color 0.2s ease, border-color 0.2s ease;
+            white-space: nowrap;
+        }
+        .main-tab:hover:not(:disabled) {
+            color: var(--text-color);
+        }
+        .main-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        .main-tab:disabled {
+            color: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .card {
+            background-color: var(--card-bg-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            transition: box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+        }
+        .view-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        .upload-icon {
+            width: 48px; height: 48px; color: var(--primary-color);
+            opacity: 0.7; transition: opacity 0.2s;
+        }
+        #drop-zone:hover .upload-icon { opacity: 1; }
+
+        #drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+        #drop-zone.drag-over {
+            background-color: #eef2ff; /* Indigo 50 */
+            border-color: var(--primary-color);
+        }
+        #drop-zone.error {
+            border-color: var(--danger-color);
+            background-color: #fee2e2; /* Red 100 */
+        }
+        #drop-zone p { color: var(--subtle-text); }
+        #drop-zone strong { color: var(--primary-hover); font-weight: 600; }
+        #drop-zone .subtle-text { font-size: 0.875rem; }
+
+        .preview-section h2 { 
+            font-size: 1.5rem; 
+            margin-bottom: 1rem; 
+            color: var(--heading-color); 
+        }
+
+        .sheet-tabs-container {
+            display: flex; flex-wrap: wrap; gap: 0.5rem;
+            margin-bottom: 1rem; border-bottom: 1px solid var(--border-color);
+        }
+        .sheet-tab {
+            padding: 0.5rem 1rem; border: none; background-color: transparent;
+            cursor: pointer; border-radius: 0.5rem 0.5rem 0 0; font-weight: 500;
+            color: var(--subtle-text); transition: background-color 0.2s, color 0.2s;
+            border-bottom: 3px solid transparent; margin-bottom: -1px;
+        }
+        .sheet-tab:hover { color: var(--text-color); }
+        .sheet-tab.active {
+            color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600;
+        }
+        
+        .table-container { max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--border-radius); margin-top: 1.5rem; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+        th, td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        thead th { 
+            background-color: #f8fafc; position: sticky; top: 0; z-index: 10;
+            font-weight: 600; color: var(--subtle-text); text-transform: uppercase;
+            font-size: 0.75rem; letter-spacing: 0.05em; border-bottom: 2px solid var(--border-color);
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:nth-of-type(even) { background-color: #f8fafc; }
+        tbody tr:hover { background-color: #f1f5f9; }
+        td:empty, td:empty::before { content: ''; background-color: #f8f9fa; opacity: 0.5; }
+        td.empty-cell { background-color: #f8f9fa; color: #9ca3af; font-style: italic; }
+        
+        /* Long header handling */
+        .truncated-header {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: help;
+            position: relative;
+        }
+        
+        .truncated-header:hover {
+            overflow: visible;
+            white-space: normal;
+            background-color: var(--primary-color);
+            color: white;
+            z-index: 1000;
+            padding: 0.5rem;
+            border-radius: 4px;
+            box-shadow: var(--shadow-lg);
+            position: absolute;
+            min-width: max-content;
+            max-width: 300px;
+        }
+        .button-container { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.5rem; }
+        #target-table-container { color: var(--subtle-text); font-size: 0.9rem; text-align: left; flex-grow: 1; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem;
+            border: none; border-radius: 0.5rem; font-weight: 600; font-size: 1rem;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .btn-primary { background-color: var(--primary-color); color: white; box-shadow: var(--shadow); }
+        .btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); }
+        .btn:disabled { 
+            background-color: #a5b4fc; /* Indigo 300 */
+            cursor: not-allowed; 
+        }
+        .alert {
+            padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; display: none;
+            opacity: 0; transition: opacity 0.3s ease; line-height: 1.5; word-break: break-word;
+        }
+        .alert pre { white-space: pre-wrap; font-family: inherit; font-size: 0.9em; margin-top: 0.5rem; }
+        .alert.show { display: block; opacity: 1; }
+        .alert-success { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .alert-danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .alert-info { background-color: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
+        .spinner { width: 24px; height: 24px; border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Dashboard Styles */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+        .stat-card {
+            background-color: var(--card-bg-color); border: 1px solid var(--border-color);
+            padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow);
+            border-left-width: 5px;
+        }
+        #sheets-stat-card { border-left-color: var(--primary-color); }
+        #rows-stat-card { border-left-color: var(--success-color); }
+        #cols-stat-card { border-left-color: var(--warning-color); }
+        .stat-card h3 { color: var(--subtle-text); font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem; }
+        .stat-card p { font-size: 2.25rem; font-weight: 700; color: var(--heading-color); }
+        
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .chart-container {
+            background-color: var(--card-bg-color); border: 1px solid var(--border-color);
+            padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow);
+        }
+        .chart-container h3 { 
+            text-align: center; 
+            margin-bottom: 1.5rem; 
+            font-weight: 600;
+            color: var(--heading-color); 
+        }
+        .chart-container canvas { max-height: 350px; width: 100% !important; }
+
+        /* Column Analysis Styles */
+        .analysis-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+        .analysis-header h2 { color: var(--heading-color); }
+        .analysis-controls { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .select-wrapper { display: flex; flex-direction: column; }
+        .select-wrapper label { font-size: 0.9rem; color: var(--subtle-text); margin-bottom: 0.35rem; font-weight: 600; }
+        .analysis-controls select {
+            padding: 0.75rem 3rem 0.75rem 1.25rem; border-radius: 0.5rem; border: 1px solid var(--border-color);
+            background-color: #fff; font-family: inherit; font-size: 1.1rem; min-width: 250px;
+            cursor: pointer; font-weight: 500;
+            appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+        }
+        #analysis-results { display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: flex-start; }
+        #analysis-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .analysis-stat-card { background-color: #f8fafc; border: 1px solid var(--border-color); padding: 1rem; border-radius: 0.5rem; }
+        .analysis-stat-card h3 { font-size: 0.9rem; color: var(--subtle-text); font-weight: 500; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .analysis-stat-card p { font-size: 1.75rem; font-weight: 700; color: var(--heading-color); word-break: break-word; }
+        #analysis-chart-container { padding: 0; box-shadow: none; border: none; background: none; }
+        .placeholder-text { text-align: center; color: var(--subtle-text); padding: 2rem 0; font-style: italic; }
+        .auto-loading { 
+            background: linear-gradient(90deg, transparent, rgba(79, 70, 229, 0.1), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200px 0; }
+            100% { background-position: 200px 0; }
+        }
+
+        /* Content section styles */
+        .card h2 {
+            color: var(--heading-color);
+            margin-bottom: 1rem;
+        }
+        
+        .card h3 {
+            color: var(--heading-color);
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card h4 {
+            color: var(--text-color);
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card p {
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        
+        .card ul {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+        
+        .card li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .card form input,
+        .card form textarea,
+        .card form select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+        
+        .hidden { display: none !important; }
+        @media (max-width: 900px) { #analysis-results { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .card { padding: 1.5rem; }
+            .header h1 { font-size: 1.75rem; }
+            .analysis-header { flex-direction: column; align-items: flex-start; }
+            #analysis-stats-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+            
+            /* More aggressive header truncation on mobile */
+            .truncated-header {
+                max-width: 120px;
+            }
+            
+            /* Smaller table headers on mobile */
+            th {
+                font-size: 0.7rem;
+                padding: 0.5rem 0.25rem;
+            }
+        }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="app-container">
+        <header class="header">
+            <h1>Data Ingest Dashboard</h1>
+            <p>Upload, analyze, and send structured data to your backend.</p>
+        </header>
+
+        <nav class="main-tabs">
+            <button id="home-tab-btn" class="main-tab">Home</button>
+            <button id="industry-tab-btn" class="main-tab">Industry Insights</button>
+            <button id="news-tab-btn" class="main-tab">News</button>
+            <button id="data-tab-btn" class="main-tab active">Data</button>
+            <button id="regional-tab-btn" class="main-tab">Regional Coverage</button>
+            <button id="events-tab-btn" class="main-tab">Events</button>
+            <button id="health-tab-btn" class="main-tab">Health & Nutrition</button>
+            <button id="contact-tab-btn" class="main-tab">Contact Us</button>
+            <button id="about-tab-btn" class="main-tab">About Us</button>
+        </nav>
+
+        <main>
+            <div id="alert-container"></div>
+
+            <!-- Data Tab Content with Sub-tabs -->
+            <div id="data-view" class="view-content">
+                <div class="card">
+                    <nav class="main-tabs" style="margin-bottom: 1rem; border-bottom: none;">
+                        <button id="ingest-subtab-btn" class="main-tab active">Ingest Tool</button>
+                        <button id="dashboard-subtab-btn" class="main-tab" disabled>Dashboard</button>
+                        <button id="uploaded-data-subtab-btn" class="main-tab" disabled>Uploaded Data</button>
+                    </nav>
+                    
+                    <div id="data-content-container">
+                        <div id="ingest-subview" class="view-content">
+                            <div class="card">
+                                <div id="drop-zone">
+                                    <input type="file" id="file-input" accept=".xlsx,.csv,.xlsm" class="hidden">
+                                    <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" />
+                                    </svg>
+                                    <p>Drag & drop your file here, or <strong>click to upload</strong>.</p>
+                                    <small class="subtle-text">Supported formats: .xlsx, .csv, .xlsm</small>
+                                </div>
+                            </div>
+                            <div id="preview-section" class="card hidden">
+                                <h2>Data Preview</h2>
+                                <div id="header-info" class="alert alert-info hidden" style="margin-bottom: 1rem;">
+                                    <strong>Smart Headers Detected:</strong> Column headers have been automatically cleaned and improved for better readability.
+                                </div>
+                                <div id="sheet-tabs" class="sheet-tabs-container"></div>
+                                <div class="table-container">
+                                    <table id="preview-table"></table>
+                                </div>
+                                <div class="button-container">
+                                    <div id="target-table-container" class="hidden">
+                                        <p>This sheet will target collection: <strong id="target-table-name"></strong></p>
+                                    </div>
+                                    <button id="upload-btn" class="btn btn-primary" disabled>
+                                        <span id="btn-text">Upload All Sheets</span>
+                                        <div id="btn-spinner" class="spinner hidden"></div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="dashboard-subview" class="view-content hidden">
+                            <!-- Overview Stats & Charts -->
+                            <div class="stats-grid">
+                                <div id="sheets-stat-card" class="stat-card">
+                                    <h3>Total Sheets</h3>
+                                    <p id="total-sheets-stat">0</p>
+                                </div>
+                                <div id="rows-stat-card" class="stat-card">
+                                    <h3>Total Rows</h3>
+                                    <p id="total-rows-stat">0</p>
+                                </div>
+                                <div id="cols-stat-card" class="stat-card">
+                                    <h3>Total Columns</h3>
+                                    <p id="total-cols-stat">0</p>
+                                </div>
+                            </div>
+                            <div class="charts-grid">
+                                <div class="chart-container">
+                                    <h3>Row Distribution by Sheet</h3>
+                                    <canvas id="rows-pie-chart"></canvas>
+                                </div>
+                                <div class="chart-container">
+                                    <h3>Data Type Distribution</h3>
+                                    <canvas id="types-pie-chart"></canvas>
+                                </div>
+                            </div>
+                            <!-- Column Analysis Section -->
+                            <div id="column-analysis-section" class="card hidden">
+                                <div class="analysis-header">
+                                    <h2>Column Analysis</h2>
+                                    <div class="analysis-controls">
+                                        <div class="select-wrapper">
+                                            <label for="sheet-selector">Sheet</label>
+                                            <select id="sheet-selector"></select>
+                                        </div>
+                                        <div class="select-wrapper">
+                                            <label for="column-selector">Column</label>
+                                            <select id="column-selector"></select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="analysis-results" class="hidden">
+                                    <div id="analysis-stats-grid"></div>
+                                    <div id="analysis-chart-container">
+                                        <canvas id="analysis-chart"></canvas>
+                                    </div>
+                                </div>
+                                <p id="analysis-placeholder" class="placeholder-text">Select a sheet and column to see a detailed analysis.</p>
+                            </div>
+                        </div>
+
+                        <div id="uploaded-data-subview" class="view-content hidden">
+                            <div class="card">
+                                <div class="analysis-header">
+                                    <h2>Firebase Data Viewer</h2>
+                                    <div class="analysis-controls">
+                                        <div class="select-wrapper">
+                                            <label for="collection-selector">Collection</label>
+                                            <select id="collection-selector">
+                                                <option value="">Select a collection...</option>
+                                            </select>
+                                        </div>
+                                        <button id="refresh-collections-btn" class="btn btn-primary">
+                                            <span>Refresh Collections</span>
+                                        </button>
+                                        <button id="toggle-empty-cells-btn" class="btn" style="background-color: var(--subtle-text); color: white;">
+                                            <span>Show Empty Cells</span>
+                                        </button>
+                                        <div id="firebase-status" class="btn" style="background-color: var(--danger-color); color: white; cursor: default;">
+                                            <span>Firebase: Not Connected</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="collection-stats" class="stats-grid hidden" style="margin-bottom: 1.5rem;">
+                                    <div class="stat-card">
+                                        <h3>Total Documents</h3>
+                                        <p id="total-documents-stat">0</p>
+                                    </div>
+                                    <div class="stat-card">
+                                        <h3>Collection Name</h3>
+                                        <p id="collection-name-stat">-</p>
+                                    </div>
+                                    <div class="stat-card">
+                                        <h3>Last Updated</h3>
+                                        <p id="last-updated-stat">-</p>
+                                    </div>
+                                </div>
+                                
+                                <div id="firebase-data-container">
+                                    <div id="firebase-data-loading" class="hidden" style="text-align: center; padding: 2rem;">
+                                        <div class="spinner" style="width: 32px; height: 32px; border-width: 4px; margin: 0 auto 1rem;"></div>
+                                        <p>Loading data from Firebase...</p>
+                                    </div>
+                                    
+                                    <div id="firebase-data-table-container" class="table-container hidden">
+                                        <table id="firebase-data-table"></table>
+                                    </div>
+                                    
+                                    <div id="firebase-data-pagination" class="hidden" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem;">
+                                        <button id="prev-page-btn" class="btn" style="padding: 0.5rem 1rem;">Previous</button>
+                                        <span id="page-info">Page 1 of 1</span>
+                                        <button id="next-page-btn" class="btn" style="padding: 0.5rem 1rem;">Next</button>
+                                    </div>
+                                    
+                                    <div id="no-firebase-data" class="placeholder-text">
+                                        <p><strong>No data to display</strong></p>
+                                        <p>To see your uploaded data:</p>
+                                        <ol style="text-align: left; display: inline-block; margin-top: 1rem;">
+                                            <li>Upload some data using the "Ingest Tool" tab</li>
+                                            <li>Click "Refresh Collections" button above</li>
+                                            <li>Select a collection from the dropdown</li>
+                                        </ol>
+                                        <p style="margin-top: 1rem;"><em>Current Firebase status shown in top-right corner</em></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Home Tab Content -->
+            <div id="home-view" class="view-content hidden">
+                <div class="card">
+                    <h2>Welcome to Data Ingest Dashboard</h2>
+                    <p>Your comprehensive solution for data processing, analysis, and storage.</p>
+                    
+                    <div class="stats-grid" style="margin-top: 2rem;">
+                        <div class="stat-card" style="border-left-color: #4f46e5;">
+                            <h3>Data Processing</h3>
+                            <p>Advanced</p>
+                        </div>
+                        <div class="stat-card" style="border-left-color: #10b981;">
+                            <h3>Machine Learning</h3>
+                            <p>Predictive</p>
+                        </div>
+                        <div class="stat-card" style="border-left-color: #f97316;">
+                            <h3>Real-time Analytics</h3>
+                            <p>Insights</p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>Key Features</h3>
+                        <ul style="margin-top: 1rem; padding-left: 1.5rem;">
+                            <li>Multi-format support (.xlsx, .csv, .xlsm)</li>
+                            <li>Advanced data cleaning and validation</li>
+                            <li>Interactive dashboard with visualizations</li>
+                            <li>Direct integration with Google Firestore</li>
+                            <li>Machine learning model training and predictions</li>
+                            <li>Secure and scalable architecture</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About Us Tab Content -->
+            <div id="about-view" class="view-content hidden">
+                <div class="card">
+            <!-- About Us Tab Content -->
+            <div id="about-view" class="view-content hidden">
+                <div class="card">
+                    <h2>About Us</h2>
+                    <p>Data Ingest Dashboard is a cutting-edge solution designed to streamline data processing workflows for businesses of all sizes.</p>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>Our Mission</h3>
+                        <p>To empower organizations with powerful data processing tools that transform raw data into actionable insights.</p>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>Our Team</h3>
+                        <p>Our team consists of data scientists, software engineers, and UX designers who are passionate about creating intuitive solutions for complex data challenges.</p>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>Why Choose Us?</h3>
+                        <ul style="margin-top: 1rem; padding-left: 1.5rem;">
+                            <li>Industry-leading data processing algorithms</li>
+                            <li>User-friendly interface designed for productivity</li>
+                            <li>Robust security and compliance features</li>
+                            <li>24/7 technical support</li>
+                            <li>Regular updates and feature enhancements</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- About Me Tab Content -->
+                <div class="card" style="margin-top: 2rem;">
+                    <h2>About Me</h2>
+                    <p>As the lead developer of the Data Ingest Dashboard, I'm passionate about creating tools that make data processing accessible and efficient for everyone.</p>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>My Background</h3>
+                        <p>I have over 10 years of experience in data engineering and software development, with a focus on building scalable data processing solutions for enterprise clients.</p>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>My Vision</h3>
+                        <p>I believe that powerful data tools should be intuitive and accessible. My goal is to bridge the gap between complex data processing capabilities and user-friendly interfaces.</p>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>Technical Expertise</h3>
+                        <ul style="margin-top: 1rem; padding-left: 1.5rem;">
+                            <li>Advanced data processing algorithms</li>
+                            <li>Cloud architecture and deployment</li>
+                            <li>Machine learning model integration</li>
+                            <li>UI/UX design for data applications</li>
+                            <li>Database optimization and management</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- News Tab Content -->
+            <div id="news-view" class="view-content hidden">
+                <div class="card">
+                    <h2>Latest News</h2>
+                    <p>Stay up-to-date with the latest developments and announcements.</p>
+                    
+                    <div style="margin-top: 2rem;">
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <h3>New Machine Learning Features Released</h3>
+                            <p style="color: var(--subtle-text); font-size: 0.9rem;">September 15, 2025</p>
+                            <p>We've added advanced ML capabilities including automated model selection and improved prediction accuracy.</p>
+                        </div>
+                        
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <h3>Dashboard Performance Improvements</h3>
+                            <p style="color: var(--subtle-text); font-size: 0.9rem;">August 28, 2025</p>
+                            <p>Significant performance enhancements have been implemented to provide faster data processing and visualization.</p>
+                        </div>
+                        
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <h3>Expanded File Format Support</h3>
+                            <p style="color: var(--subtle-text); font-size: 0.9rem;">August 10, 2025</p>
+                            <p>Now supporting additional file formats including .xlsm for enhanced Excel compatibility.</p>
+                        </div>
+                        
+                        <div>
+                            <h3>Security Update</h3>
+                            <p style="color: var(--subtle-text); font-size: 0.9rem;">July 22, 2025</p>
+                            <p>Implemented enhanced security protocols to ensure your data remains protected at all times.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Regional Coverage Tab Content -->
+            <div id="regional-view" class="view-content hidden">
+                <div class="card">
+                    <h2>Regional Coverage</h2>
+                    <p>Explore our data processing capabilities across different regions.</p>
+                    
+                    <div style="margin-top: 2rem;">
+                        <div class="stats-grid">
+                            <div class="stat-card" style="border-left-color: #4f46e5;">
+                                <h3>North America</h3>
+                                <p>98% Coverage</p>
+                            </div>
+                            <div class="stat-card" style="border-left-color: #10b981;">
+                                <h3>Europe</h3>
+                                <p>95% Coverage</p>
+                            </div>
+                            <div class="stat-card" style="border-left-color: #f97316;">
+                                <h3>Asia Pacific</h3>
+                                <p>92% Coverage</p>
+                            </div>
+                            <div class="stat-card" style="border-left-color: #8b5cf6;">
+                                <h3>Latin America</h3>
+                                <p>87% Coverage</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>Regional Features</h3>
+                        <p>Our platform is optimized for regional compliance requirements and supports multiple languages for a global user base.</p>
+                        
+                        <div style="margin-top: 1rem;">
+                            <h4>Data Centers</h4>
+                            <ul style="padding-left: 1.5rem;">
+                                <li>New York, USA</li>
+                                <li>London, UK</li>
+                                <li>Singapore, Singapore</li>
+                                <li>Sydney, Australia</li>
+                                <li>Frankfurt, Germany</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Industry Insights Tab Content -->
+            <div id="industry-view" class="view-content hidden">
+                <div class="card">
+                    <h2>Industry Insights</h2>
+                    <p>Data-driven insights across various industries.</p>
+                    
+                    <div style="margin-top: 2rem;">
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <h3>Financial Services</h3>
+                            <p>Advanced fraud detection algorithms have reduced false positives by 35% while maintaining 99.8% accuracy in identifying fraudulent transactions.</p>
+                        </div>
+                        
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <h3>Healthcare</h3>
+                            <p>Predictive models for patient readmission have improved hospital resource planning, reducing readmission rates by 22%.</p>
+                        </div>
+                        
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <h3>Retail</h3>
+                            <p>Inventory optimization using machine learning has reduced overstock by 28% and stockouts by 41% across retail chains.</p>
+                        </div>
+                        
+                        <div>
+                            <h3>Manufacturing</h3>
+                            <p>Predictive maintenance models have decreased unplanned downtime by 33% and extended equipment lifespan by 18%.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Events Tab Content -->
+            <div id="events-view" class="view-content hidden">
+                <div class="card">
+                    <h2>Upcoming Events</h2>
+                    <p>Join us at industry events and conferences.</p>
+                    
+                    <div style="margin-top: 2rem;">
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <h3>Data Science Summit 2025</h3>
+                            <p style="color: var(--subtle-text); font-size: 0.9rem;">October 15-17, 2025 | San Francisco, CA</p>
+                            <p>Join our team at the premier data science conference where we'll be presenting our latest research on automated data processing.</p>
+                        </div>
+                        
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <h3>Cloud Innovation Conference</h3>
+                            <p style="color: var(--subtle-text); font-size: 0.9rem;">November 5-6, 2025 | New York, NY</p>
+                            <p>Discover how our platform leverages cloud technologies for scalable data processing solutions.</p>
+                        </div>
+                        
+                        <div>
+                            <h3>AI in Business Workshop</h3>
+                            <p style="color: var(--subtle-text); font-size: 0.9rem;">December 12, 2025 | Online</p>
+                            <p>Learn how to integrate machine learning models into your business processes with our hands-on workshop.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Health & Nutrition Tab Content -->
+            <div id="health-view" class="view-content hidden">
+                <div class="card">
+                    <h2>Health & Nutrition</h2>
+                    <p>Explore data-driven insights in health and nutrition.</p>
+                    
+                    <div style="margin-top: 2rem;">
+                        <div class="stats-grid">
+                            <div class="stat-card" style="border-left-color: #4f46e5;">
+                                <h3>Nutrition Studies</h3>
+                                <p>127</p>
+                            </div>
+                            <div class="stat-card" style="border-left-color: #10b981;">
+                                <h3>Health Datasets</h3>
+                                <p>42</p>
+                            </div>
+                            <div class="stat-card" style="border-left-color: #f97316;">
+                                <h3>Research Papers</h3>
+                                <p>89</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>Latest Research</h3>
+                        <div style="margin-top: 1rem;">
+                            <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                                <h4>Balanced Diet Impact on Cognitive Performance</h4>
+                                <p style="color: var(--subtle-text); font-size: 0.9rem;">Published: September 10, 2025</p>
+                                <p>Our analysis of 5,000+ participants shows a strong correlation between Mediterranean-style diets and improved cognitive test scores across all age groups.</p>
+                            </div>
+                            
+                            <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                                <h4>Hydration and Physical Performance Metrics</h4>
+                                <p style="color: var(--subtle-text); font-size: 0.9rem;">Published: August 22, 2025</p>
+                                <p>Data from professional athletes demonstrates optimal hydration levels can improve endurance by up to 15% during high-intensity activities.</p>
+                            </div>
+                            
+                            <div>
+                                <h4>Microbiome Diversity and Immune System Strength</h4>
+                                <p style="color: var(--subtle-text); font-size: 0.9rem;">Published: July 30, 2025</p>
+                                <p>Our machine learning models reveal that dietary fiber intake is the strongest predictor of healthy gut microbiome diversity.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3>Data Processing Tools</h3>
+                        <p>Use our specialized data ingestion tools to analyze health and nutrition datasets:</p>
+                        <ul style="margin-top: 1rem; padding-left: 1.5rem;">
+                            <li>Nutritional content analysis</li>
+                            <li>Dietary pattern recognition</li>
+                            <li>Health outcome correlation studies</li>
+                            <li>Longitudinal health data tracking</li>
+                        </ul>
+                        <p style="margin-top: 1rem;">Visit the <a href="#" onclick="switchView('data'); return false;" style="color: var(--primary-color);">Data tab</a> to upload and analyze your health datasets.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Us Tab Content -->
+            <div id="contact-view" class="view-content hidden">
+                <div class="card">
+                    <h2>Contact Us</h2>
+                    <p>We'd love to hear from you. Reach out with any questions or feedback.</p>
+                    
+                    <div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                        <div>
+                            <h3>Get in Touch</h3>
+                            <div style="margin-top: 1rem;">
+                                <p><strong>Email:</strong> support@dataingest.com</p>
+                                <p><strong>Phone:</strong> +1 (555) 123-4567</p>
+                                <p><strong>Address:</strong> 123 Data Street, Tech City, TC 10001</p>
+                            </div>
+                            
+                            <div style="margin-top: 2rem;">
+                                <h4>Office Hours</h4>
+                                <p>Monday - Friday: 9:00 AM - 6:00 PM EST</p>
+                                <p>Saturday: 10:00 AM - 2:00 PM EST</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3>Send us a Message</h3>
+                            <form style="margin-top: 1rem;">
+                                <div style="margin-bottom: 1rem;">
+                                    <label for="contact-name" style="display: block; margin-bottom: 0.5rem;">Name</label>
+                                    <input type="text" id="contact-name" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                                </div>
+                                
+                                <div style="margin-bottom: 1rem;">
+                                    <label for="contact-email" style="display: block; margin-bottom: 0.5rem;">Email</label>
+                                    <input type="email" id="contact-email" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                                </div>
+                                
+                                <div style="margin-bottom: 1rem;">
+                                    <label for="contact-subject" style="display: block; margin-bottom: 0.5rem;">Subject</label>
+                                    <input type="text" id="contact-subject" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                                </div>
+                                
+                                <div style="margin-bottom: 1rem;">
+                                    <label for="contact-message" style="display: block; margin-bottom: 0.5rem;">Message</label>
+                                    <textarea id="contact-message" rows="5" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;"></textarea>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">Send Message</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
+
+    <script type="module">
+        // --- 0. FIREBASE SETUP ---
+        // IMPORTANT: Replace this with your own Firebase project configuration!
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPmfrpqGAp71ogoyb0nb_DzK5u2wusYrY",
+            authDomain: "dataext1-c403d.firebaseapp.com",
+            projectId: "dataext1-c403d",
+            storageBucket: "dataext1-c403d.firebasestorage.app",
+            messagingSenderId: "157022132435",
+            appId: "1:157022132435:web:8eecb29c7f699ec6de1c26",
+            measurementId: "G-PYHZ7SZ7T6"
+        };
+
+        // Initialize Firebase and Firestore
+        let db;
+        let isFirebaseInitialized = false;
+        
+        async function initializeFirebase() {
+            try {
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK not loaded');
+                }
+                
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                
+                // Test the connection
+                await db.enableNetwork();
+                isFirebaseInitialized = true;
+                console.log('Firebase initialized successfully');
+                
+                // Update status indicator
+                if (firebaseStatus) {
+                    firebaseStatus.style.backgroundColor = 'var(--success-color)';
+                    firebaseStatus.innerHTML = '<span>Firebase: Connected</span>';
+                }
+                
+            } catch (error) {
+                console.error('Firebase initialization failed:', error);
+                isFirebaseInitialized = false;
+                
+                // Update status indicator
+                if (firebaseStatus) {
+                    firebaseStatus.style.backgroundColor = 'var(--danger-color)';
+                    firebaseStatus.innerHTML = '<span>Firebase: Error</span>';
+                }
+                
+                showAlert(`<strong>Firebase Connection Failed:</strong><br>${error.message}<br><br>Please check your Firebase configuration and internet connection.`, 'danger');
+            }
+        }
+        
+        // Initialize Firebase when the page loads
+        window.addEventListener('load', async () => {
+            await initializeFirebase();
+            
+            // Auto-enable uploaded data tab if collections exist
+            const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
+            if (uploadedCollections.length > 0) {
+                uploadedDataSubTabBtn.disabled = false;
+            }
+            
+            // Show the home view by default
+            switchView('home');
+        });
+
+        // --- 1. CONFIGURATION & INITIALIZATION ---
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewSection = document.getElementById('preview-section');
+        const sheetTabsContainer = document.getElementById('sheet-tabs');
+        const previewTable = document.getElementById('preview-table');
+        const uploadBtn = document.getElementById('upload-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const alertContainer = document.getElementById('alert-container');
+        const targetTableContainer = document.getElementById('target-table-container');
+        const targetTableNameEl = document.getElementById('target-table-name');
+        
+        // View & Tab elements
+        const homeTabBtn = document.getElementById('home-tab-btn');
+        const industryTabBtn = document.getElementById('industry-tab-btn');
+        const newsTabBtn = document.getElementById('news-tab-btn');
+        const dataTabBtn = document.getElementById('data-tab-btn');
+        const regionalTabBtn = document.getElementById('regional-tab-btn');
+        const eventsTabBtn = document.getElementById('events-tab-btn');
+        const healthTabBtn = document.getElementById('health-tab-btn');
+        const contactTabBtn = document.getElementById('contact-tab-btn');
+        const aboutTabBtn = document.getElementById('about-tab-btn');
+        
+        // Data sub-tab elements
+        const ingestSubTabBtn = document.getElementById('ingest-subtab-btn');
+        const dashboardSubTabBtn = document.getElementById('dashboard-subtab-btn');
+        const uploadedDataSubTabBtn = document.getElementById('uploaded-data-subtab-btn');
+        
+        // Data sub-view elements
+        const dataView = document.getElementById('data-view');
+        const ingestSubView = document.getElementById('ingest-subview');
+        const dashboardSubView = document.getElementById('dashboard-subview');
+        const uploadedDataSubView = document.getElementById('uploaded-data-subview');
+        
+        const homeView = document.getElementById('home-view');
+        const industryView = document.getElementById('industry-view');
+        const newsView = document.getElementById('news-view');
+        const regionalView = document.getElementById('regional-view');
+        const eventsView = document.getElementById('events-view');
+        const healthView = document.getElementById('health-view');
+        const contactView = document.getElementById('contact-view');
+        const aboutView = document.getElementById('about-view');
+
+        // Firebase Data Viewer elements
+        const collectionSelector = document.getElementById('collection-selector');
+        const refreshCollectionsBtn = document.getElementById('refresh-collections-btn');
+        const toggleEmptyCellsBtn = document.getElementById('toggle-empty-cells-btn');
+        const firebaseStatus = document.getElementById('firebase-status');
+        const collectionStats = document.getElementById('collection-stats');
+        const totalDocumentsStat = document.getElementById('total-documents-stat');
+        const collectionNameStat = document.getElementById('collection-name-stat');
+        const lastUpdatedStat = document.getElementById('last-updated-stat');
+        const firebaseDataContainer = document.getElementById('firebase-data-container');
+        const firebaseDataLoading = document.getElementById('firebase-data-loading');
+        const firebaseDataTableContainer = document.getElementById('firebase-data-table-container');
+        const firebaseDataTable = document.getElementById('firebase-data-table');
+        const firebaseDataPagination = document.getElementById('firebase-data-pagination');
+        const noFirebaseData = document.getElementById('no-firebase-data');
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+        const pageInfo = document.getElementById('page-info');
+
+        // Firebase data viewer state
+        let currentCollection = '';
+        let currentPage = 1;
+        const pageSize = 50;
+        let totalDocuments = 0;
+        let lastDocument = null;
+        let showEmptyCells = false;
+        let currentDocuments = [];
+
+        // Dashboard elements
+        const totalSheetsStat = document.getElementById('total-sheets-stat');
+        const totalRowsStat = document.getElementById('total-rows-stat');
+        const totalColsStat = document.getElementById('total-cols-stat');
+        const rowsPieChartCtx = document.getElementById('rows-pie-chart').getContext('2d');
+        const typesPieChartCtx = document.getElementById('types-pie-chart').getContext('2d');
+        let rowsPieChart = null, typesPieChart = null;
+
+        // Column Analysis elements
+        const columnAnalysisSection = document.getElementById('column-analysis-section');
+        const sheetSelector = document.getElementById('sheet-selector');
+        const columnSelector = document.getElementById('column-selector');
+        const analysisResults = document.getElementById('analysis-results');
+        const analysisStatsGrid = document.getElementById('analysis-stats-grid');
+        const analysisChartCtx = document.getElementById('analysis-chart').getContext('2d');
+        const analysisPlaceholder = document.getElementById('analysis-placeholder');
+        let analysisChart = null;
+
+        let sheetsData = {};
+        let sheetsMetadata = {};
+        let currentSheetName = '';
+
+        const SUPPORTED_TYPES = [
+            { label: 'Text', value: 'text' }, { label: 'Integer', value: 'integer' },
+            { label: 'Numeric', value: 'numeric' }, { label: 'Boolean', value: 'boolean' },
+            { label: 'Date', value: 'date' }, { label: 'Timestamp', value: 'timestamptz' },
+        ];
+        
+        const DROP_ZONE_DEFAULT_HTML = `<svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" /></svg><p>Drag & drop your file here, or <strong>click to upload</strong>.</p><small class="subtle-text">Supported formats: .xlsx, .csv, .xlsm</small>`;
+
+
+        // --- 2. EVENT LISTENERS ---
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files; if (files.length) handleFile(files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files; if (files.length) handleFile(files[0]);
+        });
+        uploadBtn.addEventListener('click', uploadAllSheets);
+        
+        // Main tab event listeners
+        homeTabBtn.addEventListener('click', () => switchView('home'));
+        industryTabBtn.addEventListener('click', () => switchView('industry'));
+        newsTabBtn.addEventListener('click', () => switchView('news'));
+        dataTabBtn.addEventListener('click', () => switchView('data'));
+        regionalTabBtn.addEventListener('click', () => switchView('regional'));
+        eventsTabBtn.addEventListener('click', () => switchView('events'));
+        healthTabBtn.addEventListener('click', () => switchView('health'));
+        contactTabBtn.addEventListener('click', () => switchView('contact'));
+        aboutTabBtn.addEventListener('click', () => switchView('about'));
+        
+        // Data sub-tab event listeners
+        ingestSubTabBtn.addEventListener('click', () => switchDataSubView('ingest'));
+        dashboardSubTabBtn.addEventListener('click', () => switchDataSubView('dashboard'));
+        uploadedDataSubTabBtn.addEventListener('click', () => switchDataSubView('uploaded-data'));
+        
+        sheetSelector.addEventListener('change', updateColumnSelector);
+        columnSelector.addEventListener('change', analyzeCurrentColumn);
+        
+        // Firebase data viewer event listeners
+        refreshCollectionsBtn.addEventListener('click', refreshCollections);
+        collectionSelector.addEventListener('change', loadCollectionData);
+        prevPageBtn.addEventListener('click', () => changePage(-1));
+        nextPageBtn.addEventListener('click', () => changePage(1));
+        toggleEmptyCellsBtn.addEventListener('click', toggleEmptyCells);
+
+        // Header truncation function
+        function truncateHeader(headerText, maxLength = 20) {
+            if (!headerText || headerText.length <= maxLength) {
+                return headerText;
+            }
+            
+            // Try to break at logical points first
+            const parts = headerText.split('_');
+            if (parts.length > 1) {
+                // Try to create a meaningful abbreviation
+                let abbreviated = '';
+                let currentLength = 0;
+                
+                for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+                    if (i === 0) {
+                        // Always include the first part (but may truncate if too long)
+                        if (part.length > maxLength - 5) {
+                            abbreviated = part.substring(0, maxLength - 5) + '...';
+                            currentLength = maxLength - 2;
+                        } else {
+                            abbreviated = part;
+                            currentLength = part.length;
+                        }
+                    } else if (currentLength + part.length + 1 <= maxLength) {
+                        // Add part if it fits
+                        abbreviated += '_' + part;
+                        currentLength += part.length + 1;
+                    } else {
+                        // Take first letter of remaining parts
+                        const firstLetter = part.charAt(0).toUpperCase();
+                        if (currentLength + firstLetter.length + 1 <= maxLength - 2) {
+                            abbreviated += '_' + firstLetter;
+                            currentLength += 2;
+                        } else {
+                            // Add "..." if there are more parts
+                            if (i < parts.length - 1 && currentLength + 3 <= maxLength) {
+                                abbreviated += '...';
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                if (abbreviated.length < headerText.length) {
+                    return abbreviated;
+                }
+            }
+            
+            // Fallback: smart truncation at word boundaries
+            if (headerText.length > maxLength) {
+                // Try to break at camelCase or underscores
+                const breakPoints = [];
+                for (let i = 1; i < headerText.length - 3; i++) {
+                    if (headerText[i] === '_' || 
+                        (headerText[i].toUpperCase() === headerText[i] && headerText[i-1].toLowerCase() === headerText[i-1])) {
+                        breakPoints.push(i);
+                    }
+                }
+                
+                // Find the best break point
+                const idealLength = maxLength - 3;
+                let bestBreak = -1;
+                for (const bp of breakPoints) {
+                    if (bp <= idealLength && (bestBreak === -1 || bp > bestBreak)) {
+                        bestBreak = bp;
+                    }
+                }
+                
+                if (bestBreak > 5) { // Only break if we get a reasonable amount
+                    return headerText.substring(0, bestBreak) + '...';
+                }
+            }
+            
+            // Final fallback: simple truncation
+            return headerText.substring(0, maxLength - 3) + '...';
+        }
+        
+        function formatHeaderForDisplay(headerText, fullText = null) {
+            const originalText = fullText || headerText;
+            const truncatedText = truncateHeader(headerText);
+            
+            if (truncatedText === headerText) {
+                return headerText; // No truncation needed
+            }
+            
+            return `<span class="truncated-header" title="${originalText}">${truncatedText}</span>`;
+        }
+        
+        // Enhanced data cleaning functions
+        function removeDuplicateRows(data) {
+            if (!data || data.length === 0) return [];
+            
+            const seen = new Set();
+            const uniqueRows = [];
+            
+            data.forEach(row => {
+                // Create a hash of the row content (excluding any auto-generated IDs)
+                const rowContent = {};
+                Object.keys(row).forEach(key => {
+                    if (key !== 'id' && !isEmpty(row[key])) {
+                        rowContent[key] = row[key];
+                    }
+                });
+                
+                const rowHash = JSON.stringify(rowContent, Object.keys(rowContent).sort());
+                
+                if (!seen.has(rowHash)) {
+                    seen.add(rowHash);
+                    uniqueRows.push(row);
+                }
+            });
+            
+            return uniqueRows;
+        }
+        
+        function performAdvancedDataCleaning(data, options = {}) {
+            if (!data || data.length === 0) return [];
+            
+            const {
+                removeEmptyRows = true,
+                removeEmptyColumns = true,
+                removeEmptyCells = true,
+                trimWhitespace = true,
+                removeDuplicates = true,
+                minNonEmptyColumns = 1,
+                minNonEmptyRows = 1
+            } = options;
+            
+            let cleanedData = [...data];
+            
+            // Step 1: Clean individual cells
+            if (removeEmptyCells || trimWhitespace) {
+                cleanedData = cleanedData.map(row => {
+                    const cleanedRow = {};
+                    for (const [key, value] of Object.entries(row)) {
+                        let cleanedValue = value;
+                        
+                        if (trimWhitespace && typeof cleanedValue === 'string') {
+                            cleanedValue = cleanedValue.trim();
+                        }
+                        
+                        // Only include non-empty values
+                        if (!isEmpty(cleanedValue)) {
+                            cleanedRow[key] = cleanedValue;
+                        }
+                    }
+                    return cleanedRow;
+                });
+            }
+            
+            // Step 2: Remove empty rows - more aggressive approach
+            if (removeEmptyRows) {
+                cleanedData = cleanedData.filter(row => {
+                    // First check: completely empty rows
+                    if (isRowEmpty(row, 1)) return false;
+                    
+                    // Second check: mostly empty rows (70% empty)
+                    if (isRowMostlyEmpty(row, 0.7)) return false;
+                    
+                    // Third check: minimum meaningful content
+                    const nonEmptyValues = Object.values(row).filter(val => !isEmpty(val));
+                    return nonEmptyValues.length >= minNonEmptyColumns;
+                });
+            }
+            
+            // Step 3: Remove empty columns
+            if (removeEmptyColumns && cleanedData.length > 0) {
+                const allColumns = Object.keys(cleanedData[0] || {});
+                const nonEmptyColumns = allColumns.filter(column => {
+                    const nonEmptyValues = cleanedData.filter(row => !isEmpty(row[column]));
+                    return nonEmptyValues.length >= minNonEmptyRows;
+                });
+                
+                cleanedData = cleanedData.map(row => {
+                    const cleanedRow = {};
+                    nonEmptyColumns.forEach(column => {
+                        if (row.hasOwnProperty(column)) {
+                            cleanedRow[column] = row[column];
+                        }
+                    });
+                    return cleanedRow;
+                });
+            }
+            
+            // Step 4: Remove duplicate rows
+            if (removeDuplicates) {
+                const originalLength = cleanedData.length;
+                cleanedData = removeDuplicateRows(cleanedData);
+                const duplicatesRemoved = originalLength - cleanedData.length;
+                if (duplicatesRemoved > 0) {
+                    console.log(`Removed ${duplicatesRemoved} duplicate rows`);
+                }
+            }
+            
+            return cleanedData;
+        }
+        
+        function isEmpty(value) {
+            if (value === null || value === undefined) return true;
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                return trimmed === '' || trimmed === 'null' || trimmed === 'undefined' || trimmed === 'N/A' || trimmed === '-' || trimmed === '0' || trimmed === 'NULL' || trimmed === 'n/a';
+            }
+            if (typeof value === 'number') return isNaN(value) || value === 0;
+            if (Array.isArray(value)) return value.length === 0;
+            if (typeof value === 'object') return Object.keys(value).length === 0;
+            return false;
+        }
+        
+        function isRowEmpty(row, minimumFields = 1) {
+            if (!row || typeof row !== 'object') return true;
+            
+            const nonEmptyValues = Object.values(row).filter(val => !isEmpty(val));
+            return nonEmptyValues.length < minimumFields;
+        }
+        
+        function isRowMostlyEmpty(row, threshold = 0.7) {
+            if (!row || typeof row !== 'object') return true;
+            
+            const totalFields = Object.keys(row).length;
+            if (totalFields === 0) return true;
+            
+            const emptyFields = Object.values(row).filter(val => isEmpty(val)).length;
+            const emptyRatio = emptyFields / totalFields;
+            
+            return emptyRatio >= threshold;
+        }
+        
+        function getDataCleaningStats(originalData, cleanedData) {
+            const originalRows = originalData.length;
+            const cleanedRows = cleanedData.length;
+            const originalColumns = originalData.length > 0 ? Object.keys(originalData[0]).length : 0;
+            const cleanedColumns = cleanedData.length > 0 ? Object.keys(cleanedData[0]).length : 0;
+            
+            // Count empty rows in original data
+            const emptyRowsCount = originalData.filter(row => isRowEmpty(row, 1) || isRowMostlyEmpty(row, 0.7)).length;
+            const meaningfulRowsRemoved = (originalRows - cleanedRows) - emptyRowsCount;
+            
+            return {
+                originalRows,
+                cleanedRows,
+                removedRows: originalRows - cleanedRows,
+                emptyRowsRemoved: emptyRowsCount,
+                meaningfulRowsRemoved: Math.max(0, meaningfulRowsRemoved),
+                originalColumns,
+                cleanedColumns,
+                removedColumns: originalColumns - cleanedColumns,
+                rowsRemovalPercentage: originalRows > 0 ? ((originalRows - cleanedRows) / originalRows * 100).toFixed(1) : 0,
+                columnsRemovalPercentage: originalColumns > 0 ? ((originalColumns - cleanedColumns) / originalColumns * 100).toFixed(1) : 0
+            };
+        }
+        function detectAndCleanHeaders(jsonData) {
+            if (!jsonData || jsonData.length === 0) return [];
+            
+            // Get all possible header rows (first 5 rows to check for headers)
+            const headerCandidates = jsonData.slice(0, Math.min(5, jsonData.length));
+            let bestHeaderRow = null;
+            let bestScore = -1;
+            let bestRowIndex = 0;
+            
+            // Score each row as a potential header
+            headerCandidates.forEach((row, index) => {
+                const score = scoreAsHeader(row);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestHeaderRow = row;
+                    bestRowIndex = index;
+                }
+            });
+            
+            // If we found a good header row that's not the first row, use it
+            if (bestHeaderRow && bestRowIndex > 0 && bestScore > 0.5) {
+                return {
+                    headers: Object.keys(bestHeaderRow),
+                    dataStartIndex: bestRowIndex,
+                    cleanedData: jsonData.slice(bestRowIndex)
+                };
+            }
+            
+            // Otherwise, clean the existing headers
+            const originalHeaders = Object.keys(jsonData[0] || {});
+            const cleanedHeaders = originalHeaders.map(header => cleanHeaderName(header));
+            
+            return {
+                headers: cleanedHeaders,
+                dataStartIndex: 0,
+                cleanedData: jsonData,
+                headerMapping: originalHeaders.reduce((map, original, index) => {
+                    map[original] = cleanedHeaders[index];
+                    return map;
+                }, {})
+            };
+        }
+        
+        function scoreAsHeader(row) {
+            const values = Object.values(row);
+            let score = 0;
+            let totalValues = 0;
+            
+            values.forEach(value => {
+                if (value !== null && value !== undefined && String(value).trim() !== '') {
+                    totalValues++;
+                    const str = String(value).trim();
+                    
+                    // Higher score for text that looks like headers
+                    if (isLikelyHeaderText(str)) score += 2;
+                    // Lower score for numbers (less likely to be headers)
+                    else if (isNumeric(str)) score -= 1;
+                    // Medium score for mixed content
+                    else score += 0.5;
+                }
+            });
+            
+            // Normalize score by number of non-empty values
+            return totalValues > 0 ? score / totalValues : 0;
+        }
+        
+        function isLikelyHeaderText(str) {
+            // Common header patterns
+            const headerPatterns = [
+                /^(name|title|description|date|time|target|incident|status|type|category|id|code)$/i,
+                /^(first|last|full).?(name)$/i,
+                /^(start|end|created|updated|modified).?(date|time)$/i,
+                /^(phone|email|address|location|city|state|country)$/i,
+                /^(amount|price|cost|value|quantity|count|number|total)$/i,
+                /^(department|company|organization|team|group)$/i,
+                /^(priority|severity|urgency|level|grade|score)$/i
+            ];
+            
+            // Check against patterns
+            if (headerPatterns.some(pattern => pattern.test(str))) return true;
+            
+            // Check for general header characteristics
+            if (str.length > 1 && str.length < 50) {
+                // Contains mostly letters and common separators
+                if (/^[a-zA-Z][a-zA-Z0-9\s_\-\.]+$/i.test(str)) return true;
+                // Title case or all caps (likely headers)
+                if (/^[A-Z][a-z]+(?:\s[A-Z][a-z]+)*$/.test(str) || /^[A-Z\s_]+$/.test(str)) return true;
+            }
+            
+            return false;
+        }
+        
+        function isNumeric(str) {
+            return !isNaN(parseFloat(str)) && isFinite(str);
+        }
+        
+        function cleanHeaderName(header) {
+            if (!header || typeof header !== 'string') {
+                return 'Unnamed_Column';
+            }
+            
+            let cleaned = String(header).trim();
+            
+            // If empty or just whitespace
+            if (!cleaned || /^\s*$/.test(cleaned)) {
+                return 'Unnamed_Column';
+            }
+            
+            // If it's just numbers or generic patterns, try to make it meaningful
+            if (/^\d+$/.test(cleaned)) {
+                return `Column_${cleaned}`;
+            }
+            
+            // If it's a generic Excel column name like "__EMPTY", "Column1", etc.
+            if (/^(__EMPTY|Column\d+|Field\d+)$/i.test(cleaned)) {
+                return 'Unnamed_Column';
+            }
+            
+            // Clean up common issues
+            cleaned = cleaned
+                .replace(/^[\s\-_]+|[\s\-_]+$/g, '') // Remove leading/trailing spaces, dashes, underscores
+                .replace(/\s+/g, '_') // Replace spaces with underscores
+                .replace(/[^a-zA-Z0-9_\-]/g, '_') // Replace special characters with underscores
+                .replace(/_+/g, '_') // Collapse multiple underscores
+                .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
+            
+            // If after cleaning it's empty, provide a default
+            if (!cleaned) {
+                return 'Unnamed_Column';
+            }
+            
+            // Ensure it doesn't start with a number
+            if (/^\d/.test(cleaned)) {
+                cleaned = `Col_${cleaned}`;
+            }
+            
+            // Convert to proper case for better readability
+            cleaned = cleaned.split('_').map(word => {
+                if (word.length === 0) return word;
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            }).join('_');
+            
+            return cleaned;
+        }
+        
+        function generateMeaningfulHeaders(data, originalHeaders) {
+            const meaningfulHeaders = [];
+            
+            originalHeaders.forEach((header, index) => {
+                // If header is meaningful, use cleaned version
+                if (header && !(/^(__EMPTY|Column\d+|Field\d+|\s*|\d+)$/i.test(String(header).trim()))) {
+                    meaningfulHeaders.push(cleanHeaderName(header));
+                } else {
+                    // Try to infer meaning from data
+                    const columnData = data.slice(0, 10).map(row => Object.values(row)[index]).filter(val => val != null);
+                    const inferredName = inferColumnName(columnData, index);
+                    meaningfulHeaders.push(inferredName);
+                }
+            });
+            
+            // Ensure uniqueness
+            return ensureUniqueHeaders(meaningfulHeaders);
+        }
+        
+        function inferColumnName(columnData, index) {
+            if (!columnData || columnData.length === 0) {
+                return `Column_${index + 1}`;
+            }
+            
+            // Sample first few non-null values
+            const samples = columnData.slice(0, 5).map(val => String(val).trim());
+            
+            // Check for common patterns
+            const patterns = [
+                { pattern: /^\d{4}-\d{2}-\d{2}/, name: 'Date' },
+                { pattern: /^\d{1,2}\/\d{1,2}\/\d{4}/, name: 'Date' },
+                { pattern: /^[a-zA-Z]+@[a-zA-Z]+\.[a-zA-Z]+/, name: 'Email' },
+                { pattern: /^\+?[\d\s\-\(\)]+$/, name: 'Phone' },
+                { pattern: /^\$?[\d,]+\.\d{2}$/, name: 'Amount' },
+                { pattern: /^\d+$/, name: 'Number' },
+                { pattern: /^(true|false|yes|no|y|n)$/i, name: 'Boolean' },
+                { pattern: /^[A-Z]{2,}$/, name: 'Code' },
+                { pattern: /^\d+%$/, name: 'Percentage' }
+            ];
+            
+            // Check each pattern
+            for (const { pattern, name } of patterns) {
+                if (samples.some(sample => pattern.test(sample))) {
+                    return name;
+                }
+            }
+            
+            // Check for name-like patterns
+            const namePatterns = [
+                /^[A-Z][a-z]+\s[A-Z][a-z]+$/,  // First Last
+                /^[A-Z][a-z]+$/,               // Single name
+                /^[A-Z]+$/                     // All caps (could be last name)
+            ];
+            
+            if (samples.some(sample => namePatterns.some(pattern => pattern.test(sample)))) {
+                return 'Name';
+            }
+            
+            // If all else fails, use a descriptive generic name
+            const hasText = samples.some(sample => /[a-zA-Z]/.test(sample));
+            const hasNumbers = samples.some(sample => /\d/.test(sample));
+            
+            if (hasText && !hasNumbers) return 'Text_Field';
+            if (hasNumbers && !hasText) return 'Numeric_Field';
+            if (hasText && hasNumbers) return 'Mixed_Field';
+            
+            return `Column_${index + 1}`;
+        }
+        
+        function ensureUniqueHeaders(headers) {
+            const seen = new Set();
+            const unique = [];
+            
+            headers.forEach(header => {
+                let uniqueHeader = header;
+                let counter = 1;
+                
+                while (seen.has(uniqueHeader)) {
+                    uniqueHeader = `${header}_${counter}`;
+                    counter++;
+                }
+                
+                seen.add(uniqueHeader);
+                unique.push(uniqueHeader);
+            });
+            
+            return unique;
+        }
+        
+        function showFileError(message, fileName = '') {
+            const finalMessage = fileName ? message.replace(/\$\{fileName\}/g, `<strong>"${fileName}"</strong>`) : message;
+            showAlert(finalMessage, 'danger');
+            dropZone.classList.add('error');
+            dropZone.innerHTML = DROP_ZONE_DEFAULT_HTML;
+            fileInput.value = '';
+        }
+
+        function handleFile(file) {
+            resetUI();
+            
+            // File size validation (10MB limit)
+            const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+            if (file.size > MAX_FILE_SIZE) {
+                showFileError(`<strong>File Too Large:</strong><br>File \${fileName} is ${(file.size / (1024 * 1024)).toFixed(1)}MB. Maximum allowed size is 10MB.`, file.name);
+                return;
+            }
+            
+            const spinnerHTML = `<div class="spinner" style="width: 32px; height: 32px; border-width: 4px; border-top-color: var(--primary-color); border-right-color: transparent; border-bottom-color: transparent; border-left-color: transparent;"></div>`;
+            dropZone.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--subtle-text);">
+                                    ${spinnerHTML}
+                                    <p>Processing <strong>${file.name}</strong>...</p>
+                                  </div>`;
+
+            const extension = file.name.split('.').pop().toLowerCase();
+            
+            setTimeout(() => {
+                if (!['xlsx', 'csv', 'xlsm'].includes(extension)) {
+                    showFileError(`<strong>Unsupported File Type:</strong><br>File \${fileName} is not a supported format. Please upload a .xlsx, .csv, or .xlsm file.`, file.name);
+                    return;
+                }
+
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                            showFileError(`<strong>Invalid File:</strong><br>The file \${fileName} appears to be empty or does not contain any sheets.`, file.name);
+                            return;
+                        }
+                        
+                        sheetsData = {};
+                        const fileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                        
+                        workbook.SheetNames.forEach(sheetName => {
+                            const worksheet = workbook.Sheets[sheetName];
+                            const rawJsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+
+                            if (rawJsonData.length === 0) return;
+
+                            // Detect and clean headers
+                            const headerResult = detectAndCleanHeaders(rawJsonData);
+                            let { headers, dataStartIndex, cleanedData, headerMapping } = headerResult;
+                            
+                            // If no meaningful headers found, generate them
+                            if (!headers || headers.every(h => h === 'Unnamed_Column' || !h)) {
+                                const originalHeaders = Object.keys(rawJsonData[0] || {});
+                                headers = generateMeaningfulHeaders(rawJsonData, originalHeaders);
+                                headerMapping = originalHeaders.reduce((map, original, index) => {
+                                    map[original] = headers[index];
+                                    return map;
+                                }, {});
+                            }
+
+                            // Process the data with new headers
+                            const processedData = cleanedData.map(row => {
+                                const newRow = {};
+                                Object.keys(row).forEach((originalKey, index) => {
+                                    const newKey = headerMapping ? headerMapping[originalKey] : headers[index] || cleanHeaderName(originalKey);
+                                    const value = row[originalKey];
+                                    if (value !== null && value !== undefined && String(value).trim() !== '') {
+                                        newRow[newKey] = value;
+                                    }
+                                });
+                                return newRow;
+                            });
+
+                            // Apply advanced data cleaning
+                            const originalDataForStats = [...processedData];
+                            const finalCleanedData = performAdvancedDataCleaning(processedData, {
+                                removeEmptyRows: true,
+                                removeEmptyColumns: true,
+                                removeEmptyCells: true,
+                                trimWhitespace: true,
+                                removeDuplicates: true,
+                                minNonEmptyColumns: 2, // Require at least 2 meaningful fields per row
+                                minNonEmptyRows: 1 // Keep columns with at least 1 non-empty row
+                            });
+                            
+                            // Get cleaning stats
+                            const cleaningStats = getDataCleaningStats(originalDataForStats, finalCleanedData);
+                            
+                            if (finalCleanedData.length > 0 && Object.keys(finalCleanedData[0]).length > 0) {
+                                const effectiveSheetName = extension === 'csv' ? fileNameWithoutExt : sheetName;
+                                sheetsData[effectiveSheetName] = finalCleanedData;
+                                
+                                // Store cleaning stats for later display
+                                if (!window.cleaningStats) window.cleaningStats = {};
+                                window.cleaningStats[effectiveSheetName] = cleaningStats;
+                            }
+                        });
+                        processParsedData(); 
+
+                    } catch (error) {
+                        console.error(`Error parsing ${file.name}:`, error);
+                        showFileError(`<strong>Error Parsing File:</strong><br>Could not read \${fileName}. The file may be corrupted, password-protected, or in an unsupported format.`, file.name);
+                    }
+                };
+
+                reader.onerror = () => {
+                    console.error(`Error reading file ${file.name}`);
+                    showFileError(`<strong>File Read Error:</strong><br>An error occurred while trying to read \${fileName}. Please ensure it is not damaged or locked.`, file.name);
+                };
+
+                reader.readAsArrayBuffer(file);
+            }, 50);
+        }
+
+        function processParsedData() {
+            const dataSheetNames = Object.keys(sheetsData);
+            if (dataSheetNames.length === 0) {
+                showFileError('<strong>No Data Found:</strong><br>The uploaded file does not contain any data rows after cleaning empty rows and columns.');
+                return;
+            }
+
+            // Check if headers were improved
+            let headersImproved = false;
+            dataSheetNames.forEach(sheetName => {
+                const data = sheetsData[sheetName];
+                if (data && data.length > 0) {
+                    const headers = Object.keys(data[0]);
+                    // Check if any headers look like they were generated/cleaned
+                    if (headers.some(h => /^(Column_\d+|Text_Field|Numeric_Field|Mixed_Field|Name|Date|Email|Phone|Amount|Boolean|Code|Percentage)/.test(h))) {
+                        headersImproved = true;
+                    }
+                }
+            });
+
+            initializeMetadata(sheetsData);
+            renderDashboardOverview(sheetsData, sheetsMetadata);
+            initializeColumnAnalysis();
+
+            currentSheetName = dataSheetNames[0];
+            renderSheetTabs(dataSheetNames);
+            renderPreviewTable(sheetsData[currentSheetName]);
+            updateTargetTableInfo(currentSheetName);
+            
+            // Show header improvement notification if applicable
+            const headerInfo = document.getElementById('header-info');
+            if (headersImproved && headerInfo) {
+                headerInfo.classList.remove('hidden');
+            }
+            
+            // Show data cleaning stats if available
+            if (window.cleaningStats) {
+                let totalRemovedRows = 0;
+                let totalRemovedColumns = 0;
+                Object.values(window.cleaningStats).forEach(stats => {
+                    totalRemovedRows += stats.removedRows;
+                    totalRemovedColumns += stats.removedColumns;
+                });
+                
+                if (totalRemovedRows > 0 || totalRemovedColumns > 0) {
+                    let detailedStats = [];
+                    let totalEmptyRows = 0;
+                    let totalMeaningfulRows = 0;
+                    
+                    Object.values(window.cleaningStats).forEach(stats => {
+                        totalEmptyRows += stats.emptyRowsRemoved || 0;
+                        totalMeaningfulRows += stats.meaningfulRowsRemoved || 0;
+                    });
+                    
+                    if (totalEmptyRows > 0) {
+                        detailedStats.push(`${totalEmptyRows} empty rows`);
+                    }
+                    if (totalMeaningfulRows > 0) {
+                        detailedStats.push(`${totalMeaningfulRows} sparse rows`);
+                    }
+                    if (totalRemovedColumns > 0) {
+                        detailedStats.push(`${totalRemovedColumns} empty columns`);
+                    }
+                    
+                    const cleaningInfo = document.createElement('div');
+                    cleaningInfo.className = 'alert alert-info';
+                    cleaningInfo.style.marginBottom = '1rem';
+                    cleaningInfo.innerHTML = `<strong>Data Cleaned:</strong> Removed ${detailedStats.join(', ')} for better data quality.`;
+                    
+                    const previewSection = document.getElementById('preview-section');
+                    const existingAlert = previewSection.querySelector('.alert');
+                    if (existingAlert) {
+                        existingAlert.parentNode.insertBefore(cleaningInfo, existingAlert.nextSibling);
+                    } else {
+                        previewSection.insertBefore(cleaningInfo, previewSection.children[1]);
+                    }
+                }
+            }
+            
+            previewSection.classList.remove('hidden');
+            uploadBtn.disabled = false;
+            dashboardSubTabBtn.disabled = false;
+            switchDataSubView('ingest');
+        }
+
+        function renderSheetTabs(sheetNames) {
+            sheetTabsContainer.innerHTML = '';
+            sheetNames.forEach(name => {
+                const tabBtn = document.createElement('button');
+                tabBtn.className = 'sheet-tab';
+                const displayName = truncateHeader(name, 15); // Shorter for tabs
+                tabBtn.textContent = displayName;
+                tabBtn.title = name; // Full name on hover
+                if (name === currentSheetName) tabBtn.classList.add('active');
+                tabBtn.addEventListener('click', () => switchSheet(name));
+                sheetTabsContainer.appendChild(tabBtn);
+            });
+        }
+
+        function switchSheet(sheetName) {
+            if (sheetName === currentSheetName) return;
+            currentSheetName = sheetName;
+            renderPreviewTable(sheetsData[currentSheetName]);
+            updateTargetTableInfo(sheetName);
+            document.querySelectorAll('.sheet-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.textContent === sheetName);
+            });
+        }
+
+        function renderPreviewTable(data) {
+            if (!data || data.length === 0) {
+                previewTable.innerHTML = '<thead><tr><th>No data to display.</th></tr></thead>'; return;
+            }
+            
+            // Apply the same cleaning logic as the Firebase viewer
+            const allHeaders = Object.keys(data[0]);
+            
+            // Filter out columns that are mostly empty
+            const meaningfulHeaders = allHeaders.filter(header => {
+                const nonEmptyCount = data.filter(row => !isEmpty(row[header])).length;
+                const threshold = Math.max(1, Math.floor(data.length * 0.1));
+                return nonEmptyCount >= threshold;
+            });
+            
+            const headers = meaningfulHeaders.length > 0 ? meaningfulHeaders : allHeaders;
+            
+            // Filter out empty or mostly empty rows for preview
+            const meaningfulRows = data.filter(row => {
+                if (isRowEmpty(row, 1)) return false;
+                if (isRowMostlyEmpty(row, 0.8)) return false; // More lenient for preview
+                return true;
+            });
+            
+            const thead = `<thead><tr>${headers.map(h => `<th>${formatHeaderForDisplay(h)}</th>`).join('')}</tr></thead>`;
+            
+            const tbody = `<tbody>${meaningfulRows.slice(0, 100).map(row => 
+                `<tr>${headers.map(h => {
+                    const value = row[h];
+                    let displayValue = '';
+                    if (!isEmpty(value)) {
+                        displayValue = String(value);
+                        // Truncate long values in preview
+                        if (displayValue.length > 50) {
+                            displayValue = displayValue.substring(0, 50) + '...';
+                        }
+                    }
+                    return `<td title="${displayValue}">${displayValue}</td>`;
+                }).join('')}</tr>`
+            ).join('')}</tbody>`;
+            
+            previewTable.innerHTML = thead + tbody;
+        }
+
+        async function uploadAllSheets() {
+            if (!isFirebaseInitialized || !db) {
+                showAlert('Firestore is not initialized. Please check your Firebase configuration and ensure you have an internet connection.', 'danger');
+                return;
+            }
+
+            const sheetNames = Object.keys(sheetsData);
+            if (sheetNames.length === 0) {
+                showAlert('No data available to upload.', 'danger'); return;
+            }
+
+            // Check internet connectivity
+            if (!navigator.onLine) {
+                showAlert('No internet connection. Please check your network and try again.', 'danger');
+                return;
+            }
+
+            setLoadingState(true);
+            alertContainer.innerHTML = '';
+            const logContainer = document.createElement('div');
+            logContainer.className = 'alert alert-info show'; logContainer.style.maxHeight = '300px';
+            logContainer.style.overflowY = 'auto';
+            alertContainer.appendChild(logContainer);
+            const log = (message) => { logContainer.innerHTML += message + '<br>'; logContainer.scrollTop = logContainer.scrollHeight; };
+            log(`<strong>Starting upload for ${sheetNames.length} sheet(s) to Firestore...</strong>`);
+            let successCount = 0, errorCount = 0;
+            let totalRecords = sheetNames.reduce((sum, name) => sum + sheetsData[name].length, 0);
+            let processedRecords = 0;
+
+            for (const sheetName of sheetNames) {
+                const dataToUpload = sheetsData[sheetName];
+                const collectionName = sanitizeForFirestore(sheetName);
+                const metadata = sheetsMetadata[sheetName];
+                log(`Sheet '${sheetName}' ➔ Collection '${collectionName}': Preparing ${dataToUpload.length} records...`);
+
+                try {
+                    const sanitizedData = dataToUpload.map(row => {
+                        const newRow = {};
+                        metadata.columns.forEach(col => {
+                           if (col.sanitizedName) {
+                               const value = row[col.name];
+                               newRow[col.sanitizedName] = (value === undefined || value === null) ? null : value;
+                           }
+                        });
+                        return newRow;
+                    });
+
+                    // Firestore batch writes are limited to 500 operations.
+                    const BATCH_SIZE = 500;
+                    for (let i = 0; i < sanitizedData.length; i += BATCH_SIZE) {
+                        const batch = db.batch();
+                        const chunk = sanitizedData.slice(i, i + BATCH_SIZE);
+                        
+                        log(`Uploading batch ${Math.floor(i / BATCH_SIZE) + 1}... (${chunk.length} records)`);
+                        
+                        chunk.forEach(rowData => {
+                            const docRef = db.collection(collectionName).doc(); // Auto-generate document ID
+                            batch.set(docRef, rowData);
+                        });
+                        
+                        // Add timeout and retry logic
+                        let retries = 3;
+                        while (retries > 0) {
+                            try {
+                                await batch.commit();
+                                processedRecords += chunk.length;
+                                const progress = Math.round((processedRecords / totalRecords) * 100);
+                                log(`Progress: ${progress}% (${processedRecords}/${totalRecords} records)`);
+                                break;
+                            } catch (batchError) {
+                                retries--;
+                                if (retries === 0) throw batchError;
+                                log(`Batch failed, retrying... (${retries} attempts left)`);
+                                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+                            }
+                        }
+                    }
+                    
+                    log(`✅ Success: All ${dataToUpload.length} records for sheet '${sheetName}' uploaded to collection '${collectionName}'.`);
+                    successCount++;
+                } catch (error) {
+                    console.error(`Error processing sheet ${sheetName}:`, error);
+                    let errorMessage = error.message || 'An unexpected error occurred.';
+                    
+                    // Provide more specific error messages
+                    if (error.code === 'permission-denied') {
+                        errorMessage = 'Permission denied. Please check your Firestore security rules.';
+                    } else if (error.code === 'unavailable') {
+                        errorMessage = 'Service temporarily unavailable. Please try again later.';
+                    } else if (error.message.includes('network')) {
+                        errorMessage = 'Network error. Please check your internet connection.';
+                    }
+                    
+                    log(`❌ Error on sheet '${sheetName}': ${errorMessage}`);
+                    errorCount++;
+                }
+            }
+            log(`<strong>Upload complete. Successful sheets: ${successCount}, Failed sheets: ${errorCount}.</strong>`);
+            
+            // Store successful collection names for later reference
+            if (successCount > 0) {
+                const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
+                sheetNames.forEach(sheetName => {
+                    const collectionName = sanitizeForFirestore(sheetName);
+                    if (!uploadedCollections.includes(collectionName)) {
+                        uploadedCollections.push(collectionName);
+                    }
+                });
+                localStorage.setItem('uploadedCollections', JSON.stringify(uploadedCollections));
+                
+                // Enable uploaded data tab
+                uploadedDataSubTabBtn.disabled = false;
+                
+                // Highlight the uploaded data tab briefly to draw attention
+                uploadedDataSubTabBtn.style.backgroundColor = 'var(--success-color)';
+                uploadedDataSubTabBtn.style.color = 'white';
+                uploadedDataSubTabBtn.style.transform = 'scale(1.05)';
+                
+                // Auto-switch to uploaded data tab and show the uploaded data
+                setTimeout(() => {
+                    // Reset tab styling
+                    uploadedDataSubTabBtn.style.backgroundColor = '';
+                    uploadedDataSubTabBtn.style.color = '';
+                    uploadedDataSubTabBtn.style.transform = '';
+                    
+                    switchDataSubView('uploaded-data');
+                }, 1500); // Small delay to let the success message show
+            }
+            
+            if (errorCount > 0) logContainer.classList.replace('alert-info', 'alert-danger');
+            else logContainer.classList.replace('alert-info', 'alert-success');
+            setLoadingState(false);
+            if (errorCount === 0) resetUI(true);
+        }
+        
+        // --- 4. DASHBOARD FUNCTIONS ---
+
+        function renderDashboardOverview(sData, sMetadata) {
+            const sheetNames = Object.keys(sData);
+            const totalSheets = sheetNames.length;
+            const totalRows = sheetNames.reduce((sum, name) => sum + sData[name].length, 0);
+            const totalCols = sheetNames.reduce((sum, name) => sum + sMetadata[name].columns.length, 0);
+
+            totalSheetsStat.textContent = totalSheets;
+            totalRowsStat.textContent = totalRows.toLocaleString();
+            totalColsStat.textContent = totalCols.toLocaleString();
+
+            const chartColors = ['#4f46e5', '#10b981', '#f97316', '#8b5cf6', '#ec4899', '#f59e0b', '#34d399', '#6d28d9'];
+
+            const rowsData = {
+                labels: sheetNames,
+                datasets: [{ data: sheetNames.map(name => sData[name].length), backgroundColor: chartColors, hoverOffset: 4 }]
+            };
+            if (rowsPieChart) rowsPieChart.destroy();
+            rowsPieChart = new Chart(rowsPieChartCtx, { type: 'pie', data: rowsData, options: { responsive: true, plugins: { legend: { position: 'top', labels: { font: { size: 12 } } } } } });
+            
+            const typeCounts = {};
+            Object.values(sMetadata).forEach(sheet => { sheet.columns.forEach(col => { typeCounts[col.userType] = (typeCounts[col.userType] || 0) + 1; }); });
+            const typeLabels = Object.keys(typeCounts);
+            const typesData = {
+                labels: SUPPORTED_TYPES.filter(t => typeLabels.includes(t.value)).map(t => t.label),
+                datasets: [{ data: SUPPORTED_TYPES.filter(t => typeLabels.includes(t.value)).map(t => typeCounts[t.value]), backgroundColor: chartColors, hoverOffset: 4 }]
+            };
+            if (typesPieChart) typesPieChart.destroy();
+            typesPieChart = new Chart(typesPieChartCtx, { type: 'pie', data: typesData, options: { responsive: true, plugins: { legend: { position: 'top', labels: { font: { size: 12 } } } } } });
+        }
+
+        function initializeColumnAnalysis() {
+            columnAnalysisSection.classList.remove('hidden');
+            const sheetNames = Object.keys(sheetsData);
+            sheetSelector.innerHTML = sheetNames.map(name => {
+                const displayName = truncateHeader(name, 25);
+                return `<option value="${name}" title="${name}">${displayName}</option>`;
+            }).join('');
+            if (sheetNames.length > 0) {
+                sheetSelector.dispatchEvent(new Event('change'));
+            }
+        }
+        
+        function updateColumnSelector() {
+            const selectedSheet = sheetSelector.value;
+            const columns = sheetsMetadata[selectedSheet]?.columns || [];
+            columnSelector.innerHTML = columns.map(col => {
+                const displayName = truncateHeader(col.name, 25); // Slightly longer for dropdown
+                return `<option value="${col.name}" title="${col.name}">${displayName}</option>`;
+            }).join('');
+            if (columns.length > 0) {
+                columnSelector.dispatchEvent(new Event('change'));
+            }
+        }
+        
+        function analyzeCurrentColumn() {
+            const sheetName = sheetSelector.value;
+            const columnName = columnSelector.value;
+            if (!sheetName || !columnName) {
+                analysisResults.classList.add('hidden');
+                analysisPlaceholder.classList.remove('hidden');
+                return;
+            }
+
+            const columnData = sheetsData[sheetName].map(row => row[columnName]);
+            const columnMeta = sheetsMetadata[sheetName].columns.find(c => c.name === columnName);
+
+            if (!columnMeta) return;
+            const columnType = columnMeta.userType;
+            
+            renderAnalysisStats(columnData, columnType);
+            renderAnalysisChart(columnData, columnType, columnName);
+            
+            analysisResults.classList.remove('hidden');
+            analysisPlaceholder.classList.add('hidden');
+        }
+        
+        function renderAnalysisStats(data, type) {
+            const createCard = (title, value) => `<div class="analysis-stat-card"><h3>${title}</h3><p>${value}</p></div>`;
+            let statsHtml = '';
+            
+            const total = data.length;
+            const non_empty = data.filter(d => d !== null && d !== undefined && String(d).trim() !== '').length;
+            const unique = new Set(data.filter(d => d !== null && d !== undefined)).size;
+            
+            statsHtml += createCard('Total Rows', total.toLocaleString());
+            statsHtml += createCard('Non-Empty', non_empty.toLocaleString());
+            statsHtml += createCard('Unique Values', unique.toLocaleString());
+            statsHtml += createCard('Empty Rows', (total - non_empty).toLocaleString());
+            
+            if (type === 'integer' || type === 'numeric') {
+                const numbers = data.map(Number).filter(n => !isNaN(n));
+                if (numbers.length > 0) {
+                    const sum = numbers.reduce((a, b) => a + b, 0);
+                    const avg = sum / numbers.length;
+                    statsHtml += createCard('Sum', sum.toLocaleString());
+                    statsHtml += createCard('Mean', avg.toFixed(2));
+                    statsHtml += createCard('Min', Math.min(...numbers).toLocaleString());
+                    statsHtml += createCard('Max', Math.max(...numbers).toLocaleString());
+                }
+            } else if (type === 'text') {
+                const counts = data.reduce((acc, val) => { acc[val] = (acc[val] || 0) + 1; return acc; }, {});
+                const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+                if (sorted.length > 0 && sorted[0][0]) statsHtml += createCard('Most Frequent', sorted[0][0]);
+            }
+            analysisStatsGrid.innerHTML = statsHtml;
+        }
+
+        function renderAnalysisChart(data, type, columnName) {
+            if (analysisChart) analysisChart.destroy();
+            
+            const chartColors = ['#4f46e5', '#10b981', '#f97316', '#8b5cf6', '#ec4899', '#f59e0b', '#34d399', '#6d28d9'];
+            let chartConfig = { options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } };
+
+            switch(type) {
+                case 'integer':
+                case 'numeric':
+                    const numbers = data.map(Number).filter(n => !isNaN(n));
+                    if(numbers.length === 0) { analysisChart = null; return; }
+                    const min = Math.min(...numbers);
+                    const max = Math.max(...numbers);
+                    const binCount = Math.min(10, Math.floor(Math.sqrt(numbers.length)));
+                    const binWidth = (max - min) / binCount || 1;
+                    const bins = Array(binCount).fill(0);
+                    const labels = [];
+                    for(let i = 0; i < binCount; i++) {
+                        const binStart = min + i * binWidth;
+                        labels.push(`${binStart.toLocaleString()}-${(binStart + binWidth).toLocaleString()}`);
+                    }
+                    numbers.forEach(num => {
+                        const binIndex = Math.min(Math.floor((num - min) / binWidth), binCount - 1);
+                        if (bins[binIndex] !== undefined) bins[binIndex]++;
+                    });
+                    chartConfig.type = 'bar';
+                    chartConfig.data = { labels, datasets: [{ label: 'Count', data: bins, backgroundColor: chartColors[0] }] };
+                    chartConfig.options.scales = { y: { beginAtZero: true, title: { display: true, text: 'Frequency' } } };
+                    break;
+                
+                case 'text':
+                    const counts = data.reduce((acc, val) => { if(val) acc[val] = (acc[val] || 0) + 1; return acc; }, {});
+                    const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 10);
+                    chartConfig.type = 'bar';
+                    chartConfig.data = {
+                        labels: sorted.map(item => item[0]),
+                        datasets: [{ label: 'Count', data: sorted.map(item => item[1]), backgroundColor: chartColors[1] }]
+                    };
+                    chartConfig.options.indexAxis = 'y';
+                    chartConfig.options.scales = { x: { beginAtZero: true, title: { display: true, text: 'Frequency' } } };
+                    break;
+
+                case 'boolean':
+                    const boolCounts = data.reduce((acc, val) => { 
+                        const v = String(val).toLowerCase();
+                        if (['true', 't', '1', 'yes'].includes(v)) acc.true++;
+                        else if (['false', 'f', '0', 'no'].includes(v)) acc.false++;
+                        return acc;
+                    }, {true: 0, false: 0});
+                    chartConfig.type = 'pie';
+                    chartConfig.data = { labels: ['True', 'False'], datasets: [{ data: [boolCounts.true, boolCounts.false], backgroundColor: [chartColors[0], chartColors[4]] }] };
+                    chartConfig.options.plugins.legend.display = true;
+                    chartConfig.options.plugins.legend.position = 'top';
+                    break;
+
+                case 'date':
+                case 'timestamptz':
+                    const dateCounts = data.reduce((acc, val) => {
+                        try {
+                            const d = new Date(typeof val === 'number' ? (val - 25569) * 86400 * 1000 : val);
+                            if (!isNaN(d)) {
+                                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                                acc[key] = (acc[key] || 0) + 1;
+                            }
+                        } catch(e) {}
+                        return acc;
+                    }, {});
+                    const sortedDates = Object.entries(dateCounts).sort((a,b) => a[0].localeCompare(b[0]));
+                    chartConfig.type = 'bar';
+                    chartConfig.data = {
+                        labels: sortedDates.map(d => d[0]),
+                        datasets: [{ label: 'Count', data: sortedDates.map(d => d[1]), backgroundColor: chartColors[3] }]
+                    };
+                    chartConfig.options.scales = { y: { beginAtZero: true, title: { display: true, text: 'Record Count' } }, x: { title: { display: true, text: 'Month' } } };
+                    break;
+                default:
+                    analysisChart = null; return;
+            }
+            analysisChart = new Chart(analysisChartCtx, chartConfig);
+        }
+
+        // --- 6. FIREBASE DATA VIEWER FUNCTIONS ---
+        
+        // Auto-load uploaded data function
+        async function autoLoadUploadedData() {
+            console.log('Auto-loading uploaded data...');
+            try {
+                // Show loading indicator
+                showFirebaseLoading();
+                
+                // First, refresh collections
+                const collectionsFound = await refreshCollections();
+                console.log('Collections found:', collectionsFound);
+                
+                // Auto-select and load the first available collection (which should be most recent)
+                if (collectionsFound && collectionSelector.children.length > 1) {
+                    const firstCollection = collectionSelector.children[1]; // Skip the "Select..." option
+                    collectionSelector.value = firstCollection.value;
+                    
+                    console.log('Auto-selecting collection:', firstCollection.value);
+                    
+                    // Show which collection is being loaded
+                    showAlert(`Loading data from collection: ${firstCollection.value}`, 'info');
+                    
+                    await loadCollectionData();
+                } else {
+                    console.log('No collections found to auto-load');
+                    showNoFirebaseData('No uploaded collections found. Upload some data first.');
+                }
+            } catch (error) {
+                console.error('Error auto-loading data:', error);
+                showAlert(`Error loading data: ${error.message}`, 'danger');
+                showNoFirebaseData('Error loading data. Please try refreshing.');
+            }
+        }
+        
+        async function refreshCollections() {
+            if (!isFirebaseInitialized || !db) {
+                showAlert('Firebase is not connected. Please check your configuration.', 'danger');
+                return;
+            }
+            
+            try {
+                console.log('Refreshing collections...');
+                refreshCollectionsBtn.disabled = true;
+                refreshCollectionsBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> Loading...';
+                
+                // Get all collections by trying to list documents from known collections
+                // Note: Firestore doesn't have a direct "list collections" method in the web SDK
+                const collections = new Set();
+                
+                // Try to get collections from recent uploads
+                const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
+                console.log('Uploaded collections from localStorage:', uploadedCollections);
+                uploadedCollections.forEach(name => collections.add(name));
+                
+                // Add any collections from current sheets data
+                Object.keys(sheetsData).forEach(sheetName => {
+                    collections.add(sanitizeForFirestore(sheetName));
+                });
+                
+                console.log('All collections to check:', Array.from(collections));
+                
+                // Clear and populate the selector
+                collectionSelector.innerHTML = '<option value="">Select a collection...</option>';
+                
+                const sortedCollections = Array.from(collections).sort((a, b) => {
+                    // Prioritize recently uploaded collections
+                    const recentCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
+                    const aIsRecent = recentCollections.includes(a);
+                    const bIsRecent = recentCollections.includes(b);
+                    
+                    if (aIsRecent && !bIsRecent) return -1;
+                    if (!aIsRecent && bIsRecent) return 1;
+                    return a.localeCompare(b); // Alphabetical for same priority
+                });
+                for (const collectionName of sortedCollections) {
+                    try {
+                        console.log(`Testing collection: ${collectionName}`);
+                        // Test if collection exists by trying to get one document
+                        const testQuery = await db.collection(collectionName).limit(1).get();
+                        console.log(`Collection ${collectionName} exists, docs:`, testQuery.size);
+                        
+                        // Collection exists even if empty
+                        const option = document.createElement('option');
+                        option.value = collectionName;
+                        const displayName = truncateHeader(collectionName, 30); // Allow longer for collection names
+                        option.textContent = displayName;
+                        option.title = collectionName; // Full name on hover
+                        collectionSelector.appendChild(option);
+                    } catch (error) {
+                        console.log(`Collection ${collectionName} error:`, error.message);
+                    }
+                }
+                
+                if (collectionSelector.children.length === 1) {
+                    showAlert('No collections found. Upload some data first to see collections.', 'info');
+                    return false; // No collections found
+                }
+                
+                return true; // Collections found
+                
+            } catch (error) {
+                console.error('Error refreshing collections:', error);
+                showAlert('Error loading collections: ' + error.message, 'danger');
+                return false;
+            } finally {
+                refreshCollectionsBtn.disabled = false;
+                refreshCollectionsBtn.innerHTML = '<span>Refresh Collections</span>';
+            }
+        }
+        
+        async function loadCollectionData() {
+            const selectedCollection = collectionSelector.value;
+            console.log('Loading collection data for:', selectedCollection);
+            
+            if (!selectedCollection) {
+                console.log('No collection selected');
+                hideFirebaseData();
+                return;
+            }
+            
+            if (!isFirebaseInitialized || !db) {
+                console.error('Firebase not initialized in loadCollectionData');
+                showAlert('Firebase is not connected.', 'danger');
+                return;
+            }
+            
+            try {
+                currentCollection = selectedCollection;
+                currentPage = 1;
+                lastDocument = null;
+                
+                showFirebaseLoading();
+                console.log('Fetching data from collection:', selectedCollection);
+                
+                // Get total count (approximate)
+                const countQuery = await db.collection(selectedCollection).get();
+                totalDocuments = countQuery.size;
+                console.log('Total documents in collection:', totalDocuments);
+                
+                // Get first page of data
+                const query = db.collection(selectedCollection).limit(pageSize);
+                const snapshot = await query.get();
+                
+                if (snapshot.empty) {
+                    console.log('Collection is empty');
+                    showNoFirebaseData('Collection is empty.');
+                    return;
+                }
+                
+                const documents = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                console.log('Retrieved documents:', documents.length);
+                console.log('First document sample:', documents[0]);
+                
+                lastDocument = snapshot.docs[snapshot.docs.length - 1];
+                
+                displayFirebaseData(documents);
+                updateCollectionStats(selectedCollection, totalDocuments);
+                updatePagination();
+                
+            } catch (error) {
+                console.error('Error loading collection data:', error);
+                showAlert('Error loading data: ' + error.message, 'danger');
+                hideFirebaseData();
+            }
+        }
+        
+        async function changePage(direction) {
+            if (!currentCollection || !isFirebaseInitialized || !db) return;
+            
+            try {
+                showFirebaseLoading();
+                
+                let query = db.collection(currentCollection).limit(pageSize);
+                
+                if (direction > 0 && lastDocument) {
+                    // Next page
+                    query = query.startAfter(lastDocument);
+                    currentPage++;
+                } else if (direction < 0 && currentPage > 1) {
+                    // Previous page - this is more complex in Firestore
+                    // For simplicity, we'll reload from the beginning and skip to the right page
+                    currentPage--;
+                    const skipCount = (currentPage - 1) * pageSize;
+                    if (skipCount > 0) {
+                        const allDocsQuery = await db.collection(currentCollection).limit(skipCount + pageSize).get();
+                        const allDocs = allDocsQuery.docs;
+                        const startIndex = Math.max(0, skipCount);
+                        const pageData = allDocs.slice(startIndex, startIndex + pageSize);
+                        
+                        const documents = pageData.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        
+                        lastDocument = pageData[pageData.length - 1];
+                        displayFirebaseData(documents);
+                        updatePagination();
+                        return;
+                    }
+                }
+                
+                const snapshot = await query.get();
+                
+                if (snapshot.empty) {
+                    if (direction > 0) currentPage--; // Revert page increment
+                    showAlert('No more data available.', 'info');
+                    updatePagination();
+                    return;
+                }
+                
+                const documents = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                lastDocument = snapshot.docs[snapshot.docs.length - 1];
+                
+                displayFirebaseData(documents);
+                updatePagination();
+                
+            } catch (error) {
+                console.error('Error changing page:', error);
+                showAlert('Error loading page: ' + error.message, 'danger');
+            }
+        }
+        
+        function toggleEmptyCells() {
+            showEmptyCells = !showEmptyCells;
+            
+            if (showEmptyCells) {
+                toggleEmptyCellsBtn.innerHTML = '<span>Hide Empty Cells</span>';
+                toggleEmptyCellsBtn.style.backgroundColor = 'var(--warning-color)';
+            } else {
+                toggleEmptyCellsBtn.innerHTML = '<span>Show Empty Cells</span>';
+                toggleEmptyCellsBtn.style.backgroundColor = 'var(--subtle-text)';
+            }
+            
+            // Re-render the current data with new setting
+            if (currentDocuments.length > 0) {
+                displayFirebaseData(currentDocuments);
+            }
+        }
+        
+        function displayFirebaseData(documents) {
+            console.log('Displaying Firebase data, documents:', documents.length);
+            
+            if (!documents || documents.length === 0) {
+                console.log('No documents to display');
+                showNoFirebaseData('No documents found in this collection.');
+                return;
+            }
+            
+            // Store current documents for toggle functionality
+            currentDocuments = documents;
+            
+            // Get all unique keys from all documents
+            const allKeys = new Set();
+            documents.forEach(doc => {
+                Object.keys(doc).forEach(key => allKeys.add(key));
+            });
+            
+            let headers, cleanedDocuments;
+            
+            if (showEmptyCells) {
+                // Show all data including empty cells
+                headers = Array.from(allKeys);
+                cleanedDocuments = documents;
+            } else {
+                // Filter out columns that are mostly empty
+                headers = Array.from(allKeys).filter(key => {
+                    const nonEmptyCount = documents.filter(doc => !isEmpty(doc[key])).length;
+                    const threshold = Math.max(1, Math.floor(documents.length * 0.1)); // At least 10% non-empty
+                    return nonEmptyCount >= threshold;
+                });
+                
+                // Clean the data by removing empty cells and normalizing values
+                cleanedDocuments = documents.map(doc => {
+                    const cleanedDoc = {};
+                    headers.forEach(header => {
+                        const value = doc[header];
+                        if (!isEmpty(value)) {
+                            cleanedDoc[header] = value;
+                        }
+                    });
+                    return cleanedDoc;
+                }).filter(doc => {
+                    // Remove completely empty documents
+                    if (Object.keys(doc).length === 0) return false;
+                    
+                    // Remove documents that are mostly empty (more than 70% empty)
+                    if (isRowMostlyEmpty(doc, 0.7)) return false;
+                    
+                    // Keep documents with at least 2 non-empty fields (excluding id)
+                    const nonIdFields = Object.keys(doc).filter(key => key !== 'id');
+                    return nonIdFields.length >= 1;
+                });
+            }
+            
+            if (cleanedDocuments.length === 0 && !showEmptyCells) {
+                showNoFirebaseData('No meaningful data found after cleaning empty cells.');
+                return;
+            }
+            
+            // Create table with data
+            const thead = `<thead><tr>${headers.map(h => `<th>${formatHeaderForDisplay(h)}</th>`).join('')}</tr></thead>`;
+            const tbody = `<tbody>${cleanedDocuments.map(doc => 
+                `<tr>${headers.map(h => {
+                    const value = doc[h];
+                    let displayValue = '';
+                    let cellClass = '';
+                    
+                    if (showEmptyCells || !isEmpty(value)) {
+                        if (isEmpty(value)) {
+                            displayValue = '—'; // Em dash for empty cells when showing all
+                            cellClass = 'empty-cell';
+                        } else if (typeof value === 'object') {
+                            displayValue = JSON.stringify(value);
+                        } else {
+                            displayValue = String(value).trim();
+                        }
+                        // Truncate long values
+                        if (displayValue.length > 100) {
+                            displayValue = displayValue.substring(0, 100) + '...';
+                        }
+                    }
+                    return `<td class="${cellClass}" title="${displayValue}">${displayValue}</td>`;
+                }).join('')}</tr>`
+            ).join('')}</tbody>`;
+            
+            firebaseDataTable.innerHTML = thead + tbody;
+            
+            // Show cleaning stats if significant cleaning occurred and not showing empty cells
+            if (!showEmptyCells) {
+                const originalCellCount = documents.length * allKeys.size;
+                const cleanedCellCount = cleanedDocuments.reduce((count, doc) => count + Object.keys(doc).length, 0);
+                const removedCells = originalCellCount - cleanedCellCount;
+                
+                if (removedCells > 0) {
+                    const cleaningInfo = document.createElement('div');
+                    cleaningInfo.className = 'alert alert-info';
+                    cleaningInfo.style.marginBottom = '1rem';
+                    cleaningInfo.innerHTML = `<strong>Data Cleaned:</strong> Removed ${removedCells} empty cells and ${allKeys.size - headers.length} empty columns for better readability.`;
+                    
+                    const container = firebaseDataTableContainer.parentNode;
+                    const existingAlert = container.querySelector('.alert');
+                    if (existingAlert) {
+                        existingAlert.remove();
+                    }
+                    container.insertBefore(cleaningInfo, firebaseDataTableContainer);
+                }
+            } else {
+                // Remove cleaning info when showing all data
+                const container = firebaseDataTableContainer.parentNode;
+                const existingAlert = container.querySelector('.alert');
+                if (existingAlert) {
+                    existingAlert.remove();
+                }
+            }
+            
+            // Show the table
+            firebaseDataLoading.classList.add('hidden');
+            firebaseDataTableContainer.classList.remove('hidden');
+            firebaseDataPagination.classList.remove('hidden');
+            noFirebaseData.classList.add('hidden');
+        }
+        
+        function updateCollectionStats(collectionName, documentCount) {
+            collectionNameStat.textContent = collectionName;
+            totalDocumentsStat.textContent = documentCount.toLocaleString();
+            lastUpdatedStat.textContent = new Date().toLocaleString();
+            collectionStats.classList.remove('hidden');
+        }
+        
+        function updatePagination() {
+            const totalPages = Math.max(1, Math.ceil(totalDocuments / pageSize));
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+            prevPageBtn.disabled = currentPage <= 1;
+            nextPageBtn.disabled = currentPage >= totalPages;
+        }
+        
+        function showFirebaseLoading() {
+            firebaseDataLoading.classList.remove('hidden');
+            firebaseDataTableContainer.classList.add('hidden');
+            firebaseDataPagination.classList.add('hidden');
+            noFirebaseData.classList.add('hidden');
+        }
+        
+        function showNoFirebaseData(message = 'Select a collection to view its data.') {
+            firebaseDataLoading.classList.add('hidden');
+            firebaseDataTableContainer.classList.add('hidden');
+            firebaseDataPagination.classList.add('hidden');
+            noFirebaseData.classList.remove('hidden');
+            noFirebaseData.textContent = message;
+            collectionStats.classList.add('hidden');
+        }
+        
+        function hideFirebaseData() {
+            firebaseDataLoading.classList.add('hidden');
+            firebaseDataTableContainer.classList.add('hidden');
+            firebaseDataPagination.classList.add('hidden');
+            noFirebaseData.classList.remove('hidden');
+            collectionStats.classList.add('hidden');
+        }
+        
+        function initializeMetadata(allSheetsData) {
+            sheetsMetadata = {};
+            for (const sheetName in allSheetsData) {
+                const data = allSheetsData[sheetName]; 
+                if (!data || data.length === 0) continue;
+                
+                const headers = Object.keys(data[0] || {});
+                const sanitizedNames = new Set();
+                const columnsMetadata = [];
+
+                headers.forEach(header => {
+                    // The header should already be cleaned, but ensure Firestore compatibility
+                    let sanitizedName = sanitizeForFirestore(header);
+                    
+                    // Handle collisions to ensure unique field names
+                    let counter = 1;
+                    let finalName = sanitizedName;
+                    while (sanitizedNames.has(finalName)) {
+                        finalName = `${sanitizedName}_${counter}`;
+                        counter++;
+                    }
+                    sanitizedNames.add(finalName);
+                    
+                    const values = data.map(row => row[header]);
+                    const inferredType = inferTypeForColumn(values);
+                    
+                    columnsMetadata.push({ 
+                        name: header, 
+                        sanitizedName: finalName,
+                        userType: inferredType,
+                        displayName: header // Keep the cleaned display name
+                    });
+                });
+                
+                sheetsMetadata[sheetName] = { columns: columnsMetadata, primaryKey: null };
+            }
+        }
+
+        function inferTypeForColumn(values) {
+            let isInteger = true, isNumeric = true, isBoolean = true;
+            const sample = values.slice(0, 50).filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+            if (sample.length === 0) return 'text';
+            for (const val of sample) {
+                const sVal = String(val);
+                if (isInteger && !/^-?\d+$/.test(sVal)) isInteger = false;
+                if (isNumeric && isNaN(Number(val))) isNumeric = false;
+                if (isBoolean && !['true', 'false', 't', 'f', 'yes', 'no', '1', '0'].includes(sVal.toLowerCase())) isBoolean = false;
+            }
+            if (isInteger) return 'integer'; if (isNumeric) return 'numeric'; if (isBoolean) return 'boolean';
+            const isDateParsable = sample.every(v => !isNaN(Date.parse(String(v))) && isNaN(Number(v)));
+            if (isDateParsable) {
+                const hasTimeComponent = sample.some(v => String(v).match(/\d{1,2}:\d{2}/));
+                return hasTimeComponent ? 'timestamptz' : 'date';
+            }
+            return 'text';
+        }
+
+        function showAlert(message, type = 'danger') {
+            alertContainer.innerHTML = '';
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`; alertDiv.innerHTML = message;
+            alertContainer.appendChild(alertDiv);
+            void alertDiv.offsetWidth; alertDiv.classList.add('show');
+        }
+
+        function setLoadingState(isLoading) {
+            uploadBtn.disabled = isLoading;
+            btnText.classList.toggle('hidden', isLoading);
+            btnSpinner.classList.toggle('hidden', !isLoading);
+        }
+
+        function switchView(viewName) {
+            // Hide all main views
+            dataView.classList.add('hidden');
+            homeView.classList.add('hidden');
+            industryView.classList.add('hidden');
+            newsView.classList.add('hidden');
+            regionalView.classList.add('hidden');
+            eventsView.classList.add('hidden');
+            healthView.classList.add('hidden');
+            contactView.classList.add('hidden');
+            aboutView.classList.add('hidden');
+            
+            // Remove active class from all main tabs
+            dataTabBtn.classList.remove('active');
+            homeTabBtn.classList.remove('active');
+            industryTabBtn.classList.remove('active');
+            newsTabBtn.classList.remove('active');
+            regionalTabBtn.classList.remove('active');
+            eventsTabBtn.classList.remove('active');
+            healthTabBtn.classList.remove('active');
+            contactTabBtn.classList.remove('active');
+            aboutTabBtn.classList.remove('active');
+            
+            // Show the selected view
+            if (viewName === 'data') {
+                dataView.classList.remove('hidden');
+                dataTabBtn.classList.add('active');
+                // When switching to data view, show the ingest sub-view by default
+                switchDataSubView('ingest');
+            } else if (viewName === 'home') {
+                homeView.classList.remove('hidden');
+                homeTabBtn.classList.add('active');
+            } else if (viewName === 'industry') {
+                industryView.classList.remove('hidden');
+                industryTabBtn.classList.add('active');
+            } else if (viewName === 'news') {
+                newsView.classList.remove('hidden');
+                newsTabBtn.classList.add('active');
+            } else if (viewName === 'regional') {
+                regionalView.classList.remove('hidden');
+                regionalTabBtn.classList.add('active');
+            } else if (viewName === 'events') {
+                eventsView.classList.remove('hidden');
+                eventsTabBtn.classList.add('active');
+            } else if (viewName === 'health') {
+                healthView.classList.remove('hidden');
+                healthTabBtn.classList.add('active');
+            } else if (viewName === 'contact') {
+                contactView.classList.remove('hidden');
+                contactTabBtn.classList.add('active');
+            } else if (viewName === 'about') {
+                aboutView.classList.remove('hidden');
+                aboutTabBtn.classList.add('active');
+            }
+        }
+        
+        function switchDataSubView(viewName) {
+            // Hide all data sub-views
+            ingestSubView.classList.add('hidden');
+            dashboardSubView.classList.add('hidden');
+            uploadedDataSubView.classList.add('hidden');
+            
+            // Remove active class from all data sub-tabs
+            ingestSubTabBtn.classList.remove('active');
+            dashboardSubTabBtn.classList.remove('active');
+            uploadedDataSubTabBtn.classList.remove('active');
+            
+            // Show the selected sub-view
+            if (viewName === 'ingest') {
+                ingestSubView.classList.remove('hidden');
+                ingestSubTabBtn.classList.add('active');
+            } else if (viewName === 'dashboard') {
+                dashboardSubView.classList.remove('hidden');
+                dashboardSubTabBtn.classList.add('active');
+            } else if (viewName === 'uploaded-data') {
+                uploadedDataSubView.classList.remove('hidden');
+                uploadedDataSubTabBtn.classList.add('active');
+                // Auto-load data when switching to this tab
+                if (isFirebaseInitialized) {
+                    autoLoadUploadedData();
+                }
+            }
+        }
+
+        function resetUI(isFullReset = false) {
+            previewSection.classList.add('hidden'); 
+            sheetTabsContainer.innerHTML = '';
+            previewTable.innerHTML = '';
+            uploadBtn.disabled = true; 
+            sheetsData = {}; 
+            sheetsMetadata = {}; 
+            currentSheetName = '';
+            
+            // Hide header info
+            const headerInfo = document.getElementById('header-info');
+            if (headerInfo) headerInfo.classList.add('hidden');
+            
+            dropZone.classList.remove('error');
+            if (!isFullReset) {
+                alertContainer.innerHTML = '';
+            }
+            
+            if (isFullReset) {
+                fileInput.value = '';
+                dropZone.innerHTML = DROP_ZONE_DEFAULT_HTML;
+            }
+            
+            dashboardSubTabBtn.disabled = true;
+            
+            // Reset uploaded data tab if no collections exist
+            const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
+            uploadedDataSubTabBtn.disabled = uploadedCollections.length === 0;
+            
+            switchDataSubView('ingest');
+            totalSheetsStat.textContent = '0'; 
+            totalRowsStat.textContent = '0'; 
+            totalColsStat.textContent = '0';
+            if (rowsPieChart) { rowsPieChart.destroy(); rowsPieChart = null; }
+            if (typesPieChart) { typesPieChart.destroy(); typesPieChart = null; }
+
+            columnAnalysisSection.classList.add('hidden');
+            analysisResults.classList.add('hidden');
+            analysisPlaceholder.classList.remove('hidden');
+            if (analysisChart) { analysisChart.destroy(); analysisChart = null; }
+            sheetSelector.innerHTML = ''; 
+            columnSelector.innerHTML = '';
+        }
+
+        function updateTargetTableInfo(sheetName) {
+            if (sheetName) {
+                targetTableNameEl.textContent = sanitizeForFirestore(sheetName);
+                targetTableContainer.classList.remove('hidden');
+            } else {
+                targetTableContainer.classList.add('hidden');
+            }
+        }
+        
+        function sanitizeForFirestore(name) {
+            if (typeof name !== 'string' || name.trim() === '') return 'unnamed_field';
+            
+            const sanitized = name.trim().toLowerCase()
+                .replace(/[^a-z0-9_]/g, '_') // Replace invalid chars with _
+                .replace(/_{2,}/g, '_')     // Collapse consecutive underscores
+                .replace(/^_*|_*$/g, '')      // Trim leading/trailing underscores
+                .replace(/^[0-9]/, match => `_${match}`); // Prepend _ to leading numbers
+
+            return sanitized === '' ? 'unnamed_field' : sanitized;
+        }
+    </script>
+</body>
+</html>
