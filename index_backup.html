@@ -10,8 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- CDN for Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-    <!-- CDN for Plotly.js -->
-    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.24.1/plotly.min.js"></script>
     
     <!-- Google Fonts for a modern look -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,6 +35,209 @@
             --shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
             --border-radius: 0.75rem;
+        }
+
+        // Excel tab functions
+        function handleExcelFile(file) {
+            // Reset previous state
+            excelPreviewSection.classList.add('hidden');
+            
+            // File validation
+            const extension = file.name.split('.').pop().toLowerCase();
+            if (!['xlsx', 'xls', 'csv'].includes(extension)) {
+                showAlert('Unsupported file type. Please upload a .xlsx, .xls, or .csv file.', 'danger');
+                return;
+            }
+            
+            // File size validation (50MB limit)
+            const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+            if (file.size > MAX_FILE_SIZE) {
+                showAlert(`File is too large. Maximum allowed size is 50MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.`, 'danger');
+                return;
+            }
+            
+            // Show processing message
+            excelDropZone.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--subtle-text);">
+                    <div class="spinner" style="width: 32px; height: 32px; border-width: 4px; border-top-color: var(--primary-color); border-right-color: transparent; border-bottom-color: transparent; border-left-color: transparent;"></div>
+                    <p>Processing <strong>${file.name}</strong>...</p>
+                </div>
+            `;
+            
+            // Process file
+            setTimeout(() => {
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                            showAlert('The file appears to be empty or does not contain any sheets.', 'danger');
+                            excelDropZone.innerHTML = `
+                                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" />
+                                </svg>
+                                <p>Drag & drop your Excel file here, or <strong>click to upload</strong>.</p>
+                                <small class="subtle-text">Supported formats: .xlsx, .xls, .csv</small>
+                            `;
+                            return;
+                        }
+                        
+                        // Get data from first sheet
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+                        
+                        if (jsonData.length === 0) {
+                            showAlert('The selected sheet is empty.', 'warning');
+                            excelDropZone.innerHTML = `
+                                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" />
+                                </svg>
+                                <p>Drag & drop your Excel file here, or <strong>click to upload</strong>.</p>
+                                <small class="subtle-text">Supported formats: .xlsx, .xls, .csv</small>
+                            `;
+                            return;
+                        }
+                        
+                        // Display preview
+                        renderExcelPreview(jsonData);
+                        excelPreviewSection.classList.remove('hidden');
+                        
+                        // Reset drop zone
+                        excelDropZone.innerHTML = `
+                            <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" />
+                            </svg>
+                            <p>Drag & drop your Excel file here, or <strong>click to upload</strong>.</p>
+                            <small class="subtle-text">Supported formats: .xlsx, .xls, .csv</small>
+                            <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--success-color);"><strong>File loaded:</strong> ${file.name}</p>
+                        `;
+                        
+                    } catch (error) {
+                        console.error('Error parsing Excel file:', error);
+                        showAlert(`Error parsing file: ${error.message}`, 'danger');
+                        excelDropZone.innerHTML = `
+                            <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" />
+                            </svg>
+                            <p>Drag & drop your Excel file here, or <strong>click to upload</strong>.</p>
+                            <small class="subtle-text">Supported formats: .xlsx, .xls, .csv</small>
+                        `;
+                    }
+                };
+                
+                reader.onerror = () => {
+                    showAlert('Error reading file. Please try again.', 'danger');
+                    excelDropZone.innerHTML = `
+                        <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" />
+                        </svg>
+                        <p>Drag & drop your Excel file here, or <strong>click to upload</strong>.</p>
+                        <small class="subtle-text">Supported formats: .xlsx, .xls, .csv</small>
+                    `;
+                };
+                
+                reader.readAsArrayBuffer(file);
+            }, 500);
+        }
+        
+        function renderExcelPreview(data) {
+            if (!data || data.length === 0) {
+                excelPreviewTable.innerHTML = '<thead><tr><th>No data to display.</th></tr></thead>';
+                return;
+            }
+            
+            // Get headers from first row
+            const headers = Object.keys(data[0]);
+            
+            // Create table header
+            const thead = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+            
+            // Create table body with first 10 rows
+            const tbody = `<tbody>${data.slice(0, 10).map(row => 
+                `<tr>${headers.map(h => {
+                    const value = row[h];
+                    const displayValue = (value === null || value === undefined) ? '' : String(value);
+                    return `<td>${displayValue}</td>`;
+                }).join('')}</tr>`
+            ).join('')}</tbody>`;
+            
+            excelPreviewTable.innerHTML = thead + tbody;
+        }
+        
+        function processExcelData() {
+            showAlert('Excel data processing functionality would be implemented here. In a full implementation, this would process and upload your data.', 'info');
+        }
+        
+        // Excel tab functions have been moved to the script section
+        
+        function resetUI(isFullReset = false) {
+            // Reset drop zone
+            dropZone.innerHTML = `
+                <input type="file" id="file-input" accept=".xlsx,.csv,.xlsm" class="hidden">
+                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" />
+                </svg>
+                <p>Drag & drop your file here, or <strong>click to upload</strong>.</p>
+                <small class="subtle-text">Supported formats: .xlsx, .csv, .xlsm</small>
+            `;
+            
+            // Reset preview section
+            previewSection.classList.add('hidden');
+            headerInfo.classList.add('hidden');
+            sheetTabsContainer.innerHTML = '';
+            previewTable.innerHTML = '';
+            targetTableContainer.classList.add('hidden');
+            uploadBtn.disabled = true;
+            btnText.textContent = 'Upload All Sheets';
+            btnSpinner.classList.add('hidden');
+            
+            // Reset dashboard section
+            totalSheetsStat.textContent = '0';
+            totalRowsStat.textContent = '0';
+            totalColsStat.textContent = '0';
+            rowsPieChart.data.datasets[0].data = [];
+            typesPieChart.data.datasets[0].data = [];
+            rowsPieChart.update();
+            typesPieChart.update();
+            columnAnalysisSection.classList.add('hidden');
+            analysisResults.classList.add('hidden');
+            analysisPlaceholder.classList.remove('hidden');
+            
+            // Reset uploaded data section
+            uploadedDataTable.innerHTML = '';
+            
+            // Reset Excel section
+            excelDropZone.innerHTML = `
+                <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" class="hidden">
+                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" />
+                </svg>
+                <p>Drag & drop your Excel file here, or <strong>click to upload</strong>.</p>
+                <small class="subtle-text">Supported formats: .xlsx, .xls, .csv</small>
+            `;
+            excelPreviewSection.classList.add('hidden');
+            excelPreviewTable.innerHTML = '';
+            
+            // Reset Firebase section
+            collectionSelector.innerHTML = '<option value="">Select a collection...</option>';
+            refreshCollectionsBtn.disabled = false;
+            toggleEmptyCellsBtn.disabled = false;
+            firebaseStatus.textContent = 'Firebase: Not Connected';
+            firebaseStatus.style.backgroundColor = 'var(--danger-color)';
+            collectionStats.classList.add('hidden');
+            firebaseDataContainer.innerHTML = '';
+            firebaseDataLoading.classList.add('hidden');
+            firebaseDataTableContainer.classList.add('hidden');
+            firebaseDataPagination.classList.add('hidden');
+            noFirebaseData.classList.remove('hidden');
+            
+            // Reset theme toggle
+            themeToggleCheckbox.checked = false;
+            document.documentElement.classList.remove('dark');
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -271,35 +472,6 @@
             background-color: #a5b4fc; /* Indigo 300 */
             cursor: not-allowed; 
         }
-        
-        /* Chart type button styles */
-        .chart-type-btn {
-            padding: 0.75rem 1.5rem;
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            background-color: var(--card-bg-color);
-            color: var(--text-color);
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .chart-type-btn:hover:not(:disabled) {
-            background-color: #f1f5f9;
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-        
-        .chart-type-btn.active {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-        
-        .chart-type-btn:disabled {
-            background-color: #cbd5e1;
-            cursor: not-allowed;
-        }
         .alert {
             padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; display: none;
             opacity: 0; transition: opacity 0.3s ease; line-height: 1.5; word-break: break-word;
@@ -310,135 +482,6 @@
         .alert-danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
         .alert-info { background-color: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
         .spinner { width: 24px; height: 24px; border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
-        
-        /* Excel Upload Styles */
-        .drop-zone {
-            border: 2px dashed var(--border-color);
-            border-radius: var(--border-radius);
-            padding: 3rem 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: background-color 0.2s ease, border-color 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            background-color: var(--card-bg-color);
-        }
-        
-        .drop-zone:hover {
-            background-color: #eef2ff;
-            border-color: var(--primary-color);
-        }
-        
-        .drop-zone.drag-over {
-            background-color: #e0e7ff;
-            border-color: var(--primary-color);
-        }
-        
-        .upload-icon-container {
-            width: 48px;
-            height: 48px;
-            color: var(--primary-color);
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-        
-        .drop-zone:hover .upload-icon-container {
-            opacity: 1;
-        }
-        
-        .progress-container {
-            margin: 2rem 0;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background-color: #e2e8f0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 1rem;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background-color: var(--primary-color);
-            transition: width 0.3s ease;
-        }
-        
-        .upload-result {
-            text-align: center;
-            padding: 2rem;
-            border-radius: var(--border-radius);
-            background-color: #dcfce7;
-            color: #166534;
-            margin: 2rem 0;
-        }
-        
-        .result-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .result-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: var(--success-color);
-            color: white;
-        }
-        
-        .result-icon svg {
-            width: 30px;
-            height: 30px;
-        }
-        
-        .uploaded-files-section {
-            margin-top: 2rem;
-        }
-        
-        .files-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        
-        .file-card {
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            padding: 1rem;
-            background-color: var(--card-bg-color);
-        }
-        
-        .file-card h4 {
-            margin-top: 0;
-            margin-bottom: 0.5rem;
-            color: var(--heading-color);
-        }
-        
-        .file-card p {
-            margin: 0.25rem 0;
-            color: var(--subtle-text);
-            font-size: 0.9rem;
-        }
-        
-        .file-card a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .file-card a:hover {
-            text-decoration: underline;
-        }
 
 /* Switch toggle styles */
 .switch {
@@ -610,6 +653,7 @@ input:checked + .slider:before {
             }
         }
     </style>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
     <div id="app-container">
@@ -644,21 +688,21 @@ input:checked + .slider:before {
                 <div class="card">
                     <nav class="main-tabs" style="margin-bottom: 1rem; border-bottom: none;">
                         <button id="ingest-subtab-btn" class="main-tab active">Ingest Tool</button>
-                        <button id="dashboard-subtab-btn" class="main-tab">Dashboard</button>
+                        <button id="dashboard-subtab-btn" class="main-tab" disabled>Dashboard</button>
                         <button id="uploaded-data-subtab-btn" class="main-tab" disabled>Uploaded Data</button>
-                        <button id="excel-subtab-btn" class="main-tab" disabled>Excel</button>
+                        <button id="excel-subtab-btn" class="main-tab">Excel</button>
                     </nav>
                     
                     <div id="data-content-container">
                         <div id="ingest-subview" class="view-content">
                             <div class="card">
                                 <div id="drop-zone">
-                                    <input type="file" id="file-input" accept=".xlsx,.xls,.xlsm,.csv" class="hidden">
+                                    <input type="file" id="file-input" accept=".xlsx,.csv,.xlsm" class="hidden">
                                     <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" />
                                     </svg>
                                     <p>Drag & drop your file here, or <strong>click to upload</strong>.</p>
-                                    <small class="subtle-text">Supported formats: .xlsx, .xls, .xlsm, .csv</small>
+                                    <small class="subtle-text">Supported formats: .xlsx, .csv, .xlsm</small>
                                 </div>
                             </div>
                             <div id="preview-section" class="card hidden">
@@ -708,76 +752,6 @@ input:checked + .slider:before {
                                     <canvas id="types-pie-chart"></canvas>
                                 </div>
                             </div>
-                            
-                            <!-- Firestore Data Visualization Section -->
-                            <div id="firestore-visualization-section" class="card" style="margin-top: 2rem;">
-                                <div class="analysis-header">
-                                    <h2>Firestore Data Visualization</h2>
-                                    <div class="analysis-controls">
-                                        <div class="select-wrapper">
-                                            <label for="visualization-collection-selector">Collection</label>
-                                            <select id="visualization-collection-selector">
-                                                <option value="">Select a collection...</option>
-                                            </select>
-                                        </div>
-                                        <button id="refresh-visualization-collections-btn" class="btn btn-primary">
-                                            <span>Refresh Collections</span>
-                                        </button>
-                                        <button id="generate-visualization-btn" class="btn" style="background-color: var(--success-color); color: white;" disabled>
-                                            <span>Generate Visualizations</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Chart Type Selection -->
-                                <div id="chart-type-selection" class="hidden" style="margin-top: 1rem;">
-                                    <h3>Select Chart Type</h3>
-                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
-                                        <button class="chart-type-btn" data-chart-type="bar">Bar Chart</button>
-                                        <button class="chart-type-btn" data-chart-type="scatter">Scatter Plot</button>
-                                        <button class="chart-type-btn" data-chart-type="line">Line Chart</button>
-                                        <button class="chart-type-btn" data-chart-type="histogram">Histogram</button>
-                                        <button class="chart-type-btn" data-chart-type="pie">Pie Chart</button>
-                                    </div>
-                                    
-                                    <!-- Column Selection for Charts -->
-                                    <div id="column-selection" class="hidden" style="margin-top: 1rem;">
-                                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                                            <div class="select-wrapper">
-                                                <label for="x-column-selector">X-Axis Column</label>
-                                                <select id="x-column-selector"></select>
-                                            </div>
-                                            <div class="select-wrapper">
-                                                <label for="y-column-selector">Y-Axis Column</label>
-                                                <select id="y-column-selector"></select>
-                                            </div>
-                                        </div>
-                                        <button id="create-chart-btn" class="btn btn-primary" style="margin-top: 1rem;">
-                                            <span>Create Chart</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Visualization Results -->
-                                <div id="visualization-results" class="hidden" style="margin-top: 2rem;">
-                                    <div id="visualization-charts-container">
-                                        <!-- Charts will be dynamically inserted here -->
-                                    </div>
-                                </div>
-                                
-                                <!-- Visualization Loading Indicator -->
-                                <div id="visualization-loading" class="hidden" style="text-align: center; padding: 2rem;">
-                                    <div class="spinner" style="width: 32px; height: 32px; border-width: 4px; margin: 0 auto 1rem;"></div>
-                                    <p>Generating visualizations...</p>
-                                </div>
-                                
-                                <!-- No Data Message -->
-                                <div id="no-visualization-data" class="placeholder-text">
-                                    <p><strong>No visualization data available</strong></p>
-                                    <p>Select a collection and click "Generate Visualizations" to create charts from your data.</p>
-                                </div>
-                            </div>
-                            
                             <!-- Column Analysis Section -->
                             <div id="column-analysis-section" class="card hidden">
                                 <div class="analysis-header">
@@ -805,6 +779,56 @@ input:checked + .slider:before {
 
                         <div id="uploaded-data-subview" class="view-content hidden">
                             <div class="card">
+                                <h2>Uploaded Data</h2>
+                                <p>View and manage your uploaded data here.</p>
+                                <div id="uploaded-data-table" class="table-container"></div>
+                            </div>
+                        </div>
+
+                        <div id="excel-subview" class="view-content hidden">
+                            <div class="card">
+                                <h2>Excel Data Processing</h2>
+                                <p>Upload and process Excel files with advanced features.</p>
+                                
+                                <div class="stats-grid" style="margin-top: 1.5rem;">
+                                    <div class="stat-card" style="border-left-color: #4f46e5;">
+                                        <h3>Supported Formats</h3>
+                                        <p>.xlsx, .xls, .csv</p>
+                                    </div>
+                                    <div class="stat-card" style="border-left-color: #10b981;">
+                                        <h3>Max File Size</h3>
+                                        <p>50 MB</p>
+                                    </div>
+                                    <div class="stat-card" style="border-left-color: #f97316;">
+                                        <h3>Processing Speed</h3>
+                                        <p>Fast & Efficient</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="card" style="margin-top: 1.5rem;">
+                                    <h3>Upload Excel File</h3>
+                                    <div id="excel-drop-zone" style="border: 2px dashed var(--border-color); border-radius: var(--border-radius); padding: 2rem; text-align: center; cursor: pointer; transition: background-color 0.2s ease, border-color 0.2s ease; margin-top: 1rem;">
+                                        <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" class="hidden">
+                                        <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" />
+                                        </svg>
+                                        <p>Drag & drop your Excel file here, or <strong>click to upload</strong>.</p>
+                                        <small class="subtle-text">Supported formats: .xlsx, .xls, .csv</small>
+                                    </div>
+                                </div>
+                                
+                                <div id="excel-preview-section" class="card hidden" style="margin-top: 1.5rem;">
+                                    <h3>Excel Data Preview</h3>
+                                    <div class="table-container" style="margin-top: 1rem;">
+                                        <table id="excel-preview-table"></table>
+                                    </div>
+                                    <div class="button-container" style="margin-top: 1.5rem;">
+                                        <button id="excel-process-btn" class="btn btn-primary">Process Data</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                                 <div class="analysis-header">
                                     <h2>Firebase Data Viewer</h2>
                                     <div class="analysis-controls">
@@ -865,74 +889,6 @@ input:checked + .slider:before {
                                             <li>Click "Refresh Collections" button above</li>
                                             <li>Select a collection from the dropdown</li>
                                         </ol>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="excel-subview" class="view-content hidden">
-                            <div class="card">
-                                <h2>Excel Data from Firestore</h2>
-                                <p>View Excel data that has been uploaded and processed through the Ingest Tool.</p>
-                                
-                                <div class="analysis-header">
-                                    <h3>Select Collection</h3>
-                                    <div class="analysis-controls">
-                                        <div class="select-wrapper">
-                                            <label for="excel-workbook-selector">Excel Workbook</label>
-                                            <select id="excel-workbook-selector">
-                                                <option value="">All Workbooks</option>
-                                            </select>
-                                        </div>
-                                        <div class="select-wrapper">
-                                            <label for="excel-collection-selector">Collection</label>
-                                            <select id="excel-collection-selector">
-                                                <option value="">Select a collection...</option>
-                                            </select>
-                                        </div>
-                                        <button id="excel-refresh-collections-btn" class="btn btn-primary">
-                                            <span>Refresh Collections</span>
-                                        </button>
-                                        <button id="excel-download-btn" class="btn" style="background-color: var(--success-color); color: white;" disabled>
-                                            <span>Download as CSV</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div id="excel-collection-stats" class="stats-grid hidden" style="margin-bottom: 1.5rem;">
-                                    <div class="stat-card">
-                                        <h3>Total Documents</h3>
-                                        <p id="excel-total-documents-stat">0</p>
-                                    </div>
-                                    <div class="stat-card">
-                                        <h3>Collection Name</h3>
-                                        <p id="excel-collection-name-stat">-</p>
-                                    </div>
-                                    <div class="stat-card">
-                                        <h3>Last Updated</h3>
-                                        <p id="excel-last-updated-stat">-</p>
-                                    </div>
-                                </div>
-                                
-                                <div id="excel-data-container">
-                                    <div id="excel-data-loading" class="hidden" style="text-align: center; padding: 2rem;">
-                                        <div class="spinner" style="width: 32px; height: 32px; border-width: 4px; margin: 0 auto 1rem;"></div>
-                                        <p>Loading data from Firebase...</p>
-                                    </div>
-                                    
-                                    <div id="excel-data-table-container" class="table-container hidden">
-                                        <table id="excel-data-table"></table>
-                                    </div>
-                                    
-                                    <div id="excel-data-pagination" class="hidden" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem;">
-                                        <button id="excel-prev-page-btn" class="btn" style="padding: 0.5rem 1rem;">Previous</button>
-                                        <span id="excel-page-info">Page 1 of 1</span>
-                                        <button id="excel-next-page-btn" class="btn" style="padding: 0.5rem 1rem;">Next</button>
-                                    </div>
-                                    
-                                    <div id="excel-no-data" class="placeholder-text">
-                                        <p><strong>No data to display</strong></p>
-                                        <p>Please upload Excel files using the Ingest Tool and then refresh collections.</p>
                                     </div>
                                 </div>
                             </div>
@@ -1288,12 +1244,6 @@ input:checked + .slider:before {
                 </div>
             </div>
 
-            <!-- Home Tab Content -->
-            <div id="home-view" class="view-content">
-                <div class="card">
-                </div>
-            </div>
-
             <!-- News Tab Content -->
             <div id="news-view" class="view-content hidden">
                 <div class="card">
@@ -1546,7 +1496,6 @@ input:checked + .slider:before {
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-storage-compat.js"></script>
 
     <script type="module">
         // --- 0. FIREBASE SETUP ---
@@ -1573,7 +1522,6 @@ input:checked + .slider:before {
                 
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
-                storage = firebase.storage();
                 
                 // Test the connection
                 await db.enableNetwork();
@@ -1604,22 +1552,10 @@ input:checked + .slider:before {
         window.addEventListener('load', async () => {
             await initializeFirebase();
             
-            // Auto-enable tabs if collections exist
+            // Auto-enable uploaded data tab if collections exist
             const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
             if (uploadedCollections.length > 0) {
                 uploadedDataSubTabBtn.disabled = false;
-                if (excelSubTabBtn) {
-                    excelSubTabBtn.disabled = false;
-                }
-                if (dashboardSubTabBtn) {
-                    dashboardSubTabBtn.disabled = false;
-                }
-            } else {
-                // Even if no collections exist yet, enable the dashboard tab
-                // It can be used for visualization of data that will be uploaded
-                if (dashboardSubTabBtn) {
-                    dashboardSubTabBtn.disabled = false;
-                }
             }
             
             // Set initial theme toggle state
@@ -1721,47 +1657,6 @@ input:checked + .slider:before {
         let lastDocument = null;
         let showEmptyCells = false;
         let currentDocuments = [];
-        
-        // Firebase Storage reference
-        let storage;
-        
-        // Excel data viewer state
-        let excelCurrentCollection = '';
-        let excelCurrentPage = 1;
-        let excelTotalDocuments = 0;
-        let excelLastDocument = null;
-        let excelCurrentDocuments = [];
-        
-        // Excel upload elements
-        const excelDropZone = document.getElementById('excel-drop-zone');
-        const excelFileInput = document.getElementById('excel-file-input');
-        const excelProgressContainer = document.getElementById('excel-progress-container');
-        const excelProgressBar = document.getElementById('excel-progress-bar');
-        const excelProgressText = document.getElementById('excel-progress-text');
-        const excelUploadResult = document.getElementById('excel-upload-result');
-        const excelDownloadLink = document.getElementById('excel-download-link');
-        const excelUploadAnother = document.getElementById('excel-upload-another');
-        const excelUploadedFiles = document.getElementById('excel-uploaded-files');
-        const excelFilesList = document.getElementById('excel-files-list');
-        
-        // Excel data viewer elements
-        const excelWorkbookSelector = document.getElementById('excel-workbook-selector');
-        const excelCollectionSelector = document.getElementById('excel-collection-selector');
-        const excelRefreshCollectionsBtn = document.getElementById('excel-refresh-collections-btn');
-        const excelDownloadBtn = document.getElementById('excel-download-btn');
-        const excelCollectionStats = document.getElementById('excel-collection-stats');
-        const excelTotalDocumentsStat = document.getElementById('excel-total-documents-stat');
-        const excelCollectionNameStat = document.getElementById('excel-collection-name-stat');
-        const excelLastUpdatedStat = document.getElementById('excel-last-updated-stat');
-        const excelDataContainer = document.getElementById('excel-data-container');
-        const excelDataLoading = document.getElementById('excel-data-loading');
-        const excelDataTableContainer = document.getElementById('excel-data-table-container');
-        const excelDataTable = document.getElementById('excel-data-table');
-        const excelDataPagination = document.getElementById('excel-data-pagination');
-        const excelNoData = document.getElementById('excel-no-data');
-        const excelPrevPageBtn = document.getElementById('excel-prev-page-btn');
-        const excelNextPageBtn = document.getElementById('excel-next-page-btn');
-        const excelPageInfo = document.getElementById('excel-page-info');
 
         // Dashboard elements
         const totalSheetsStat = document.getElementById('total-sheets-stat');
@@ -1770,20 +1665,6 @@ input:checked + .slider:before {
         const rowsPieChartCtx = document.getElementById('rows-pie-chart').getContext('2d');
         const typesPieChartCtx = document.getElementById('types-pie-chart').getContext('2d');
         let rowsPieChart = null, typesPieChart = null;
-
-        // Visualization elements
-        const visualizationCollectionSelector = document.getElementById('visualization-collection-selector');
-        const refreshVisualizationCollectionsBtn = document.getElementById('refresh-visualization-collections-btn');
-        const generateVisualizationBtn = document.getElementById('generate-visualization-btn');
-        const chartTypeSelection = document.getElementById('chart-type-selection');
-        const columnSelection = document.getElementById('column-selection');
-        const xColumnSelector = document.getElementById('x-column-selector');
-        const yColumnSelector = document.getElementById('y-column-selector');
-        const createChartBtn = document.getElementById('create-chart-btn');
-        const visualizationResults = document.getElementById('visualization-results');
-        const visualizationChartsContainer = document.getElementById('visualization-charts-container');
-        const visualizationLoading = document.getElementById('visualization-loading');
-        const noVisualizationData = document.getElementById('no-visualization-data');
 
         // Column Analysis elements
         const columnAnalysisSection = document.getElementById('column-analysis-section');
@@ -1805,161 +1686,88 @@ input:checked + .slider:before {
             { label: 'Date', value: 'date' }, { label: 'Timestamp', value: 'timestamptz' },
         ];
         
-        const DROP_ZONE_DEFAULT_HTML = `<svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" /></svg><p>Drag & drop your file here, or <strong>click to upload</strong>.</p><small class="subtle-text">Supported formats: .xlsx, .xls, .csv, .xlsm</small>`;
+        const DROP_ZONE_DEFAULT_HTML = `<svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5A2.25 2.25 0 0118.75 19.5H5.25A2.25 2.25 0 013 17.25z" /></svg><p>Drag & drop your file here, or <strong>click to upload</strong>.</p><small class="subtle-text">Supported formats: .xlsx, .csv, .xlsm</small>`;
 
 
         // --- 2. EVENT LISTENERS ---
-        if (dropZone) {
-            dropZone.addEventListener('click', () => fileInput.click());
-            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault(); dropZone.classList.remove('drag-over');
-                const files = e.dataTransfer.files; if (files.length) handleFile(files[0]);
-            });
-        }
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                const files = e.target.files; if (files.length) handleFile(files[0]);
-            });
-        }
-        if (uploadBtn) {
-            uploadBtn.addEventListener('click', uploadAllSheets);
-        }
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files; if (files.length) handleFile(files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files; if (files.length) handleFile(files[0]);
+        });
+        uploadBtn.addEventListener('click', uploadAllSheets);
         
         // Main tab event listeners
-        if (homeTabBtn) {
-            homeTabBtn.addEventListener('click', () => switchView('home'));
-        }
-        if (industryTabBtn) {
-            industryTabBtn.addEventListener('click', () => switchView('industry'));
-        }
-        if (newsTabBtn) {
-            newsTabBtn.addEventListener('click', () => switchView('news'));
-        }
-        if (dataTabBtn) {
-            dataTabBtn.addEventListener('click', () => switchView('data'));
-        }
-        if (regionalTabBtn) {
-            regionalTabBtn.addEventListener('click', () => switchView('regional'));
-        }
-        if (eventsTabBtn) {
-            eventsTabBtn.addEventListener('click', () => switchView('events'));
-        }
-        if (healthTabBtn) {
-            healthTabBtn.addEventListener('click', () => switchView('health'));
-        }
-        if (contactTabBtn) {
-            contactTabBtn.addEventListener('click', () => switchView('contact'));
-        }
-        if (aboutTabBtn) {
-            aboutTabBtn.addEventListener('click', () => switchView('about'));
-        }
+        homeTabBtn.addEventListener('click', () => switchView('home'));
+        industryTabBtn.addEventListener('click', () => switchView('industry'));
+        newsTabBtn.addEventListener('click', () => switchView('news'));
+        dataTabBtn.addEventListener('click', () => switchView('data'));
+        regionalTabBtn.addEventListener('click', () => switchView('regional'));
+        eventsTabBtn.addEventListener('click', () => switchView('events'));
+        healthTabBtn.addEventListener('click', () => switchView('health'));
+        contactTabBtn.addEventListener('click', () => switchView('contact'));
+        aboutTabBtn.addEventListener('click', () => switchView('about'));
         
         // Data sub-tab event listeners
-        if (ingestSubTabBtn) {
-            ingestSubTabBtn.addEventListener('click', () => switchDataSubView('ingest'));
-        }
-        if (dashboardSubTabBtn) {
-            dashboardSubTabBtn.addEventListener('click', () => switchDataSubView('dashboard'));
-        }
-        if (uploadedDataSubTabBtn) {
-            uploadedDataSubTabBtn.addEventListener('click', () => switchDataSubView('uploaded-data'));
-        }
-        if (excelSubTabBtn) {
-            excelSubTabBtn.addEventListener('click', () => switchDataSubView('excel'));
-        }
+        ingestSubTabBtn.addEventListener('click', () => switchDataSubView('ingest'));
+        dashboardSubTabBtn.addEventListener('click', () => switchDataSubView('dashboard'));
+        uploadedDataSubTabBtn.addEventListener('click', () => switchDataSubView('uploaded-data'));
+        excelSubTabBtn.addEventListener('click', () => switchDataSubView('excel'));
         
-        if (sheetSelector) {
-            sheetSelector.addEventListener('change', updateColumnSelector);
-        }
-        if (columnSelector) {
-            columnSelector.addEventListener('change', analyzeCurrentColumn);
-        }
+        sheetSelector.addEventListener('change', updateColumnSelector);
+        columnSelector.addEventListener('change', analyzeCurrentColumn);
         
         // Theme toggle event listener
-        if (themeToggleCheckbox) {
-            themeToggleCheckbox.addEventListener('change', toggleTheme);
-        }
+        themeToggleCheckbox.addEventListener('change', toggleTheme);
 
         // Firebase data viewer event listeners
-        if (refreshCollectionsBtn) {
-            refreshCollectionsBtn.addEventListener('click', refreshCollections);
-        }
-        
-        // Visualization event listeners
-        if (visualizationCollectionSelector) {
-            visualizationCollectionSelector.addEventListener('change', handleVisualizationCollectionChange);
-        }
-        if (refreshVisualizationCollectionsBtn) {
-            refreshVisualizationCollectionsBtn.addEventListener('click', refreshVisualizationCollections);
-        }
-        if (generateVisualizationBtn) {
-            generateVisualizationBtn.addEventListener('click', generateVisualizations);
-        }
-        
-        // Chart type selection event listeners
-        const chartTypeButtons = document.querySelectorAll('.chart-type-btn');
-        chartTypeButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Remove active class from all buttons
-                chartTypeButtons.forEach(btn => btn.classList.remove('active'));
-                
-                // Add active class to clicked button
-                button.classList.add('active');
-                
-                const chartType = button.getAttribute('data-chart-type');
-                handleChartTypeSelection(chartType);
-            });
-        });
-        
-        if (createChartBtn) {
-            createChartBtn.addEventListener('click', createChart);
-        }
-        
-        // Excel data viewer event listeners
-        if (excelCollectionSelector) {
-            excelCollectionSelector.addEventListener('change', loadExcelCollectionData);
-        }
-        if (excelWorkbookSelector) {
-            excelWorkbookSelector.addEventListener('change', refreshExcelCollections);
-        }
-        if (excelRefreshCollectionsBtn) {
-            excelRefreshCollectionsBtn.addEventListener('click', refreshExcelCollections);
-        }
-        if (excelDownloadBtn) {
-            excelDownloadBtn.addEventListener('click', downloadExcelDataAsCSV);
-        }
-        if (excelPrevPageBtn) {
-            excelPrevPageBtn.addEventListener('click', () => changeExcelPage(-1));
-        }
-        if (excelNextPageBtn) {
-            excelNextPageBtn.addEventListener('click', () => changeExcelPage(1));
-        }
+        refreshCollectionsBtn.addEventListener('click', refreshCollections);
 
         // About Us sub-tab event listeners
-        if (aboutUsSubTabBtn) {
-            aboutUsSubTabBtn.addEventListener('click', () => switchAboutUsSubView('about-us'));
-        }
-        if (developerSubTabBtn) {
-            developerSubTabBtn.addEventListener('click', () => switchAboutUsSubView('developer'));
-        }
-        if (aboutMeSubTabBtn) {
-            aboutMeSubTabBtn.addEventListener('click', () => switchAboutUsSubView('about-me'));
+        aboutUsSubTabBtn.addEventListener('click', () => switchAboutUsSubView('about-us'));
+        developerSubTabBtn.addEventListener('click', () => switchAboutUsSubView('developer'));
+        aboutMeSubTabBtn.addEventListener('click', () => switchAboutUsSubView('about-me'));
+
+        // Excel tab elements
+        const excelDropZone = document.getElementById('excel-drop-zone');
+        const excelFileInput = document.getElementById('excel-file-input');
+        const excelPreviewSection = document.getElementById('excel-preview-section');
+        const excelPreviewTable = document.getElementById('excel-preview-table');
+        const excelProcessBtn = document.getElementById('excel-process-btn');
+
+        // Excel tab event listeners
+        if (excelDropZone && excelFileInput) {
+            excelDropZone.addEventListener('click', () => excelFileInput.click());
+            excelDropZone.addEventListener('dragover', (e) => { 
+                e.preventDefault(); 
+                excelDropZone.classList.add('drag-over'); 
+            });
+            excelDropZone.addEventListener('dragleave', () => excelDropZone.classList.remove('drag-over'));
+            excelDropZone.addEventListener('drop', (e) => {
+                e.preventDefault(); 
+                excelDropZone.classList.remove('drag-over');
+                const files = e.dataTransfer.files; 
+                if (files.length) handleExcelFile(files[0]);
+            });
+            excelFileInput.addEventListener('change', (e) => {
+                const files = e.target.files; 
+                if (files.length) handleExcelFile(files[0]);
+            });
         }
 
-        if (collectionSelector) {
-            collectionSelector.addEventListener('change', loadCollectionData);
+        if (excelProcessBtn) {
+            excelProcessBtn.addEventListener('click', processExcelData);
         }
-        if (prevPageBtn) {
-            prevPageBtn.addEventListener('click', () => changePage(-1));
-        }
-        if (nextPageBtn) {
-            nextPageBtn.addEventListener('click', () => changePage(1));
-        }
-        if (toggleEmptyCellsBtn) {
-            toggleEmptyCellsBtn.addEventListener('click', toggleEmptyCells);
-        }
+
+        collectionSelector.addEventListener('change', loadCollectionData);
+        prevPageBtn.addEventListener('click', () => changePage(-1));
+        nextPageBtn.addEventListener('click', () => changePage(1));
+        toggleEmptyCellsBtn.addEventListener('click', toggleEmptyCells);
 
         // Header truncation function
         function truncateHeader(headerText, maxLength = 20) {
@@ -2474,14 +2282,8 @@ input:checked + .slider:before {
             const extension = file.name.split('.').pop().toLowerCase();
             
             setTimeout(() => {
-                if (!['xlsx', 'xls', 'csv', 'xlsm'].includes(extension)) {
-                    showFileError(`<strong>Unsupported File Type:</strong><br>File \${fileName} is not a supported format. Please upload a .xlsx, .xls, .csv, or .xlsm file.`, file.name);
-                    return;
-                }
-                
-                // If it's an Excel file, process it and upload data to Firestore directly
-                if (['xlsx', 'xls', 'xlsm'].includes(extension)) {
-                    processExcelFileForFirestore(file);
+                if (!['xlsx', 'csv', 'xlsm'].includes(extension)) {
+                    showFileError(`<strong>Unsupported File Type:</strong><br>File \${fileName} is not a supported format. Please upload a .xlsx, .csv, or .xlsm file.`, file.name);
                     return;
                 }
 
@@ -2573,167 +2375,6 @@ input:checked + .slider:before {
             }, 50);
         }
 
-        // Function to process Excel workbook and upload data to Firestore
-        function uploadExcelWorkbookToFirebase(file) {
-            // Process the Excel file directly to extract data and upload to Firestore
-            processExcelFileForFirestore(file);
-        }
-
-        // Function to process Excel file and upload data to Firestore
-        function processExcelFileForFirestore(file) {
-            const reader = new FileReader();
-            
-            reader.onload = async (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-                        showAlert(`The Excel file <strong>${file.name}</strong> appears to be empty or does not contain any sheets.`, 'danger');
-                        dropZone.innerHTML = DROP_ZONE_DEFAULT_HTML;
-                        return;
-                    }
-                    
-                    const fileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                    let successCount = 0;
-                    let errorCount = 0;
-                    
-                    // Save workbook information to localStorage
-                    saveUploadedExcelFile(file.name, '');
-                    
-                    for (const sheetName of workbook.SheetNames) {
-                        try {
-                            const worksheet = workbook.Sheets[sheetName];
-                            const rawJsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
-                            
-                            if (rawJsonData.length === 0) {
-                                console.log(`Sheet ${sheetName} is empty, skipping...`);
-                                continue;
-                            }
-                            
-                            // Detect and clean headers
-                            const headerResult = detectAndCleanHeaders(rawJsonData);
-                            let { headers, dataStartIndex, cleanedData, headerMapping } = headerResult;
-                            
-                            // If no meaningful headers found, generate them
-                            if (!headers || headers.every(h => h === 'Unnamed_Column' || !h)) {
-                                const originalHeaders = Object.keys(rawJsonData[0] || {});
-                                headers = generateMeaningfulHeaders(rawJsonData, originalHeaders);
-                                headerMapping = originalHeaders.reduce((map, original, index) => {
-                                    map[original] = headers[index];
-                                    return map;
-                                }, {});
-                            }
-                            
-                            // Process the data with new headers
-                            const processedData = cleanedData.map(row => {
-                                const newRow = {};
-                                Object.keys(row).forEach((originalKey, index) => {
-                                    const newKey = headerMapping ? headerMapping[originalKey] : headers[index] || cleanHeaderName(originalKey);
-                                    const value = row[originalKey];
-                                    if (value !== null && value !== undefined && String(value).trim() !== '') {
-                                        newRow[newKey] = value;
-                                    }
-                                });
-                                return newRow;
-                            });
-                            
-                            // Apply advanced data cleaning
-                            const finalCleanedData = performAdvancedDataCleaning(processedData, {
-                                removeEmptyRows: true,
-                                removeEmptyColumns: true,
-                                removeEmptyCells: true,
-                                trimWhitespace: true,
-                                removeDuplicates: true,
-                                minNonEmptyColumns: 1, // Require at least 1 meaningful field per row
-                                minNonEmptyRows: 1 // Keep columns with at least 1 non-empty row
-                            });
-                            
-                            if (finalCleanedData.length > 0 && Object.keys(finalCleanedData[0]).length > 0) {
-                                const effectiveSheetName = sheetName === 'Sheet1' ? fileNameWithoutExt : sheetName;
-                                const collectionName = sanitizeForFirestore(effectiveSheetName);
-                                
-                                // Upload data to Firestore
-                                await uploadSheetDataToFirestore(finalCleanedData, collectionName);
-                                successCount++;
-                                
-                                // Store collection name for later reference
-                                const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
-                                if (!uploadedCollections.includes(collectionName)) {
-                                    uploadedCollections.push(collectionName);
-                                    localStorage.setItem('uploadedCollections', JSON.stringify(uploadedCollections));
-                                }
-                            }
-                        } catch (sheetError) {
-                            console.error(`Error processing sheet ${sheetName}:`, sheetError);
-                            errorCount++;
-                        }
-                    }
-                    
-                    // Show completion message
-                    if (successCount > 0) {
-                        showAlert(`Excel file <strong>${file.name}</strong> processed successfully. ${successCount} sheet(s) uploaded to Firestore. You can view the data in the Excel tab.`, 'success');
-                        
-                        // Enable the Excel tab if it was disabled
-                        if (excelSubTabBtn) {
-                            excelSubTabBtn.disabled = false;
-                        }
-                    } else if (errorCount > 0) {
-                        showAlert(`Excel file <strong>${file.name}</strong> processing completed with errors. ${errorCount} sheet(s) failed to upload.`, 'danger');
-                    } else {
-                        showAlert(`Excel file <strong>${file.name}</strong> processed but no data was found to upload.`, 'info');
-                    }
-                    
-                    dropZone.innerHTML = DROP_ZONE_DEFAULT_HTML;
-                } catch (error) {
-                    console.error(`Error processing Excel file ${file.name}:`, error);
-                    showAlert(`Error processing Excel file <strong>${file.name}</strong>: ${error.message}`, 'danger');
-                    dropZone.innerHTML = DROP_ZONE_DEFAULT_HTML;
-                }
-            };
-            
-            reader.onerror = () => {
-                console.error(`Error reading file ${file.name}`);
-                showAlert(`Error reading file <strong>${file.name}</strong>. Please ensure it is not damaged or locked.`, 'danger');
-                dropZone.innerHTML = DROP_ZONE_DEFAULT_HTML;
-            };
-            
-            reader.readAsArrayBuffer(file);
-        }
-        
-        // Function to upload sheet data to Firestore
-        async function uploadSheetDataToFirestore(data, collectionName) {
-            if (!isFirebaseInitialized || !db) {
-                throw new Error('Firestore is not initialized');
-            }
-            
-            try {
-                // Firestore batch writes are limited to 500 operations
-                const BATCH_SIZE = 500;
-                let processedRecords = 0;
-                
-                for (let i = 0; i < data.length; i += BATCH_SIZE) {
-                    const batch = db.batch();
-                    const chunk = data.slice(i, i + BATCH_SIZE);
-                    
-                    chunk.forEach(rowData => {
-                        const docRef = db.collection(collectionName).doc(); // Auto-generate document ID
-                        batch.set(docRef, rowData);
-                    });
-                    
-                    // Commit the batch
-                    await batch.commit();
-                    processedRecords += chunk.length;
-                }
-                
-                console.log(`Successfully uploaded ${processedRecords} records to collection ${collectionName}`);
-                return processedRecords;
-            } catch (error) {
-                console.error(`Error uploading data to collection ${collectionName}:`, error);
-                throw error;
-            }
-        }
-
         function processParsedData() {
             const dataSheetNames = Object.keys(sheetsData);
             if (dataSheetNames.length === 0) {
@@ -2816,9 +2457,6 @@ input:checked + .slider:before {
             previewSection.classList.remove('hidden');
             uploadBtn.disabled = false;
             dashboardSubTabBtn.disabled = false;
-            
-            // Excel files are now handled separately in the uploadExcelWorkbookToFirebase function
-            
             switchDataSubView('ingest');
         }
 
@@ -3000,18 +2638,8 @@ input:checked + .slider:before {
                 });
                 localStorage.setItem('uploadedCollections', JSON.stringify(uploadedCollections));
                 
-                // Also save Excel files if they were uploaded through the ingest tool
-                // This would typically be done by checking file extensions
-                // For now, we'll just refresh the Excel files list
-                loadUploadedExcelFiles();
-                
                 // Enable uploaded data tab
                 uploadedDataSubTabBtn.disabled = false;
-                
-                // Enable Excel tab if it exists
-                if (excelSubTabBtn) {
-                    excelSubTabBtn.disabled = false;
-                }
                 
                 // Highlight the uploaded data tab briefly to draw attention
                 uploadedDataSubTabBtn.style.backgroundColor = 'var(--success-color)';
@@ -3336,111 +2964,6 @@ input:checked + .slider:before {
             }
         }
         
-        async function refreshExcelCollections() {
-            if (!isFirebaseInitialized || !db) {
-                showAlert('Firebase is not connected. Please check your configuration.', 'danger');
-                return;
-            }
-            
-            try {
-                console.log('Refreshing Excel collections...');
-                excelRefreshCollectionsBtn.disabled = true;
-                excelRefreshCollectionsBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> Loading...';
-                
-                // Get all collections by trying to list documents from known collections
-                const collections = new Set();
-                
-                // Try to get collections from recent uploads
-                const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
-                console.log('Uploaded collections from localStorage:', uploadedCollections);
-                uploadedCollections.forEach(name => collections.add(name));
-                
-                // Add any collections from current sheets data
-                Object.keys(sheetsData).forEach(sheetName => {
-                    collections.add(sanitizeForFirestore(sheetName));
-                });
-                
-                console.log('All collections to check:', Array.from(collections));
-                
-                // Get selected workbook filter
-                const selectedWorkbook = excelWorkbookSelector ? excelWorkbookSelector.value : '';
-                
-                // Populate workbook selector with unique workbook names from localStorage
-                if (excelWorkbookSelector) {
-                    // Get workbook names from excelUploads in localStorage
-                    const excelUploads = JSON.parse(localStorage.getItem('excelUploads') || '[]');
-                    const workbookNames = [...new Set(excelUploads.map(file => file.workbookName || 
-                        (file.name ? (file.name.substring(0, file.name.lastIndexOf('.')) || file.name) : 'Unknown')))].sort();
-                    
-                    // Clear and populate workbook selector
-                    excelWorkbookSelector.innerHTML = '<option value="">All Workbooks</option>';
-                    workbookNames.forEach(name => {
-                        const option = document.createElement('option');
-                        option.value = name;
-                        option.textContent = name;
-                        if (name === selectedWorkbook) {
-                            option.selected = true;
-                        }
-                        excelWorkbookSelector.appendChild(option);
-                    });
-                }
-                
-                // Clear and populate the collection selector
-                excelCollectionSelector.innerHTML = '<option value="">Select a collection...</option>';
-                
-                const sortedCollections = Array.from(collections).sort((a, b) => {
-                    // Prioritize recently uploaded collections
-                    const recentCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
-                    const aIsRecent = recentCollections.includes(a);
-                    const bIsRecent = recentCollections.includes(b);
-                    
-                    if (aIsRecent && !bIsRecent) return -1;
-                    if (!aIsRecent && bIsRecent) return 1;
-                    return a.localeCompare(b); // Alphabetical for same priority
-                });
-                
-                // Filter collections based on selected workbook if any
-                let filteredCollections = sortedCollections;
-                if (selectedWorkbook) {
-                    // Filter collections that match the workbook name
-                    // We'll check if the collection name contains the workbook name
-                    filteredCollections = sortedCollections.filter(collection => 
-                        collection.toLowerCase().includes(selectedWorkbook.toLowerCase())
-                    );
-                }
-                
-                for (const collectionName of filteredCollections) {
-                    try {
-                        console.log(`Testing collection: ${collectionName}`);
-                        // Test if collection exists by trying to get one document
-                        const testQuery = await db.collection(collectionName).limit(1).get();
-                        console.log(`Collection ${collectionName} exists, docs:`, testQuery.size);
-                        
-                        // Collection exists even if empty
-                        const option = document.createElement('option');
-                        option.value = collectionName;
-                        const displayName = truncateHeader(collectionName, 30); // Allow longer for collection names
-                        option.textContent = displayName;
-                        option.title = collectionName; // Full name on hover
-                        excelCollectionSelector.appendChild(option);
-                    } catch (error) {
-                        console.log(`Collection ${collectionName} error:`, error.message);
-                    }
-                }
-                
-                if (excelCollectionSelector.children.length === 1) {
-                    showAlert('No collections found. Upload some data first to see collections.', 'info');
-                }
-                
-            } catch (error) {
-                console.error('Error refreshing Excel collections:', error);
-                showAlert('Error loading collections: ' + error.message, 'danger');
-            } finally {
-                excelRefreshCollectionsBtn.disabled = false;
-                excelRefreshCollectionsBtn.innerHTML = '<span>Refresh Collections</span>';
-            }
-        }
-        
         async function loadCollectionData() {
             const selectedCollection = collectionSelector.value;
             console.log('Loading collection data for:', selectedCollection);
@@ -3739,310 +3262,6 @@ input:checked + .slider:before {
             collectionStats.classList.add('hidden');
         }
         
-        // --- 7. EXCEL DATA VIEWER FUNCTIONS ---
-        
-
-        
-        async function loadExcelCollectionData() {
-            const selectedCollection = excelCollectionSelector.value;
-            console.log('Loading Excel collection data for:', selectedCollection);
-            
-            if (!selectedCollection) {
-                console.log('No collection selected');
-                hideExcelData();
-                return;
-            }
-            
-            if (!isFirebaseInitialized || !db) {
-                console.error('Firebase not initialized in loadExcelCollectionData');
-                showAlert('Firebase is not connected.', 'danger');
-                return;
-            }
-            
-            try {
-                excelCurrentCollection = selectedCollection;
-                excelCurrentPage = 1;
-                excelLastDocument = null;
-                
-                showExcelLoading();
-                console.log('Fetching data from collection:', selectedCollection);
-                
-                // Get total count (approximate)
-                const countQuery = await db.collection(selectedCollection).get();
-                excelTotalDocuments = countQuery.size;
-                console.log('Total documents in collection:', excelTotalDocuments);
-                
-                // Get first page of data
-                const query = db.collection(selectedCollection).limit(pageSize);
-                const snapshot = await query.get();
-                
-                if (snapshot.empty) {
-                    console.log('Collection is empty');
-                    showNoExcelData('Collection is empty.');
-                    return;
-                }
-                
-                const documents = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                
-                console.log('Retrieved documents:', documents.length);
-                console.log('First document sample:', documents[0]);
-                
-                excelLastDocument = snapshot.docs[snapshot.docs.length - 1];
-                
-                displayExcelData(documents);
-                updateExcelCollectionStats(selectedCollection, excelTotalDocuments);
-                updateExcelPagination();
-                
-            } catch (error) {
-                console.error('Error loading collection data:', error);
-                showAlert('Error loading data: ' + error.message, 'danger');
-                hideExcelData();
-            }
-        }
-        
-        async function changeExcelPage(direction) {
-            if (!excelCurrentCollection || !isFirebaseInitialized || !db) return;
-            
-            try {
-                showExcelLoading();
-                
-                let query = db.collection(excelCurrentCollection).limit(pageSize);
-                
-                if (direction > 0 && excelLastDocument) {
-                    // Next page
-                    query = query.startAfter(excelLastDocument);
-                    excelCurrentPage++;
-                } else if (direction < 0 && excelCurrentPage > 1) {
-                    // Previous page - this is more complex in Firestore
-                    // For simplicity, we'll reload from the beginning and skip to the right page
-                    excelCurrentPage--;
-                    const skipCount = (excelCurrentPage - 1) * pageSize;
-                    if (skipCount > 0) {
-                        const allDocsQuery = await db.collection(excelCurrentCollection).limit(skipCount + pageSize).get();
-                        const allDocs = allDocsQuery.docs;
-                        const startIndex = Math.max(0, skipCount);
-                        const pageData = allDocs.slice(startIndex, startIndex + pageSize);
-                        
-                        const documents = pageData.map(doc => ({
-                            id: doc.id,
-                            ...doc.data()
-                        }));
-                        
-                        excelLastDocument = pageData[pageData.length - 1];
-                        displayExcelData(documents);
-                        updateExcelPagination();
-                        return;
-                    }
-                }
-                
-                const snapshot = await query.get();
-                
-                if (snapshot.empty) {
-                    if (direction > 0) excelCurrentPage--; // Revert page increment
-                    showAlert('No more data available.', 'info');
-                    updateExcelPagination();
-                    return;
-                }
-                
-                const documents = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                
-                excelLastDocument = snapshot.docs[snapshot.docs.length - 1];
-                
-                displayExcelData(documents);
-                updateExcelPagination();
-                
-            } catch (error) {
-                console.error('Error changing page:', error);
-                showAlert('Error loading page: ' + error.message, 'danger');
-            }
-        }
-        
-        function displayExcelData(documents) {
-            console.log('Displaying Excel data, documents:', documents.length);
-            
-            if (!documents || documents.length === 0) {
-                console.log('No documents to display');
-                showNoExcelData('No documents found in this collection.');
-                // Disable download button when no data
-                if (excelDownloadBtn) {
-                    excelDownloadBtn.disabled = true;
-                }
-                return;
-            }
-            
-            // Store current documents for toggle functionality
-            excelCurrentDocuments = documents;
-            
-            // Get all unique keys from all documents
-            const allKeys = new Set();
-            documents.forEach(doc => {
-                Object.keys(doc).forEach(key => allKeys.add(key));
-            });
-            
-            // Show all data including empty cells for Excel data
-            const headers = Array.from(allKeys);
-            const cleanedDocuments = documents;
-            
-            // Create table with data
-            const thead = `<thead><tr>${headers.map(h => `<th>${formatHeaderForDisplay(h)}</th>`).join('')}</tr></thead>`;
-            const tbody = `<tbody>${cleanedDocuments.map(doc => 
-                `<tr>${headers.map(h => {
-                    const value = doc[h];
-                    let displayValue = '';
-                    let cellClass = '';
-                    
-                    if (!isEmpty(value)) {
-                        if (typeof value === 'object') {
-                            displayValue = JSON.stringify(value);
-                        } else {
-                            displayValue = String(value).trim();
-                        }
-                        // Truncate long values
-                        if (displayValue.length > 100) {
-                            displayValue = displayValue.substring(0, 100) + '...';
-                        }
-                    } else {
-                        displayValue = '—'; // Em dash for empty cells
-                        cellClass = 'empty-cell';
-                    }
-                    return `<td class="${cellClass}" title="${displayValue}">${displayValue}</td>`;
-                }).join('')}</tr>`
-            ).join('')}</tbody>`;
-            
-            excelDataTable.innerHTML = thead + tbody;
-            
-            // Enable download button when data is loaded
-            if (excelDownloadBtn) {
-                excelDownloadBtn.disabled = false;
-            }
-            
-            // Show the table
-            excelDataLoading.classList.add('hidden');
-            excelDataTableContainer.classList.remove('hidden');
-            excelDataPagination.classList.remove('hidden');
-            excelNoData.classList.add('hidden');
-        }
-        
-        // Function to download Excel data as CSV
-        async function downloadExcelDataAsCSV() {
-            if (!excelCurrentCollection || !excelCurrentDocuments || excelCurrentDocuments.length === 0) {
-                showAlert('No data available to download.', 'danger');
-                return;
-            }
-            
-            try {
-                // Show loading state
-                if (excelDownloadBtn) {
-                    excelDownloadBtn.disabled = true;
-                    excelDownloadBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> Downloading...';
-                }
-                
-                // Get all documents from the collection (not just the current page)
-                const querySnapshot = await db.collection(excelCurrentCollection).get();
-                const allDocuments = querySnapshot.docs.map(doc => doc.data());
-                
-                if (allDocuments.length === 0) {
-                    showAlert('No data found to download.', 'danger');
-                    return;
-                }
-                
-                // Get all unique keys from all documents
-                const allKeys = new Set();
-                allDocuments.forEach(doc => {
-                    Object.keys(doc).forEach(key => allKeys.add(key));
-                });
-                
-                const headers = Array.from(allKeys);
-                
-                // Create CSV content
-                let csvContent = '';
-                
-                // Add headers
-                csvContent += headers.map(header => `"${header.replace(/"/g, '""')}"`).join(',') + '\n';
-                
-                // Add data rows
-                allDocuments.forEach(doc => {
-                    const row = headers.map(header => {
-                        const value = doc[header];
-                        if (value === null || value === undefined) {
-                            return '';
-                        }
-                        if (typeof value === 'object') {
-                            return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
-                        }
-                        return `"${String(value).replace(/"/g, '""')}"`;
-                    }).join(',');
-                    csvContent += row + '\n';
-                });
-                
-                // Create blob and download
-                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.setAttribute('href', url);
-                link.setAttribute('download', `${excelCurrentCollection}.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                showAlert(`Successfully downloaded ${allDocuments.length} records as CSV.`, 'success');
-            } catch (error) {
-                console.error('Error downloading data:', error);
-                showAlert(`Error downloading data: ${error.message}`, 'danger');
-            } finally {
-                // Restore button state
-                if (excelDownloadBtn) {
-                    excelDownloadBtn.disabled = false;
-                    excelDownloadBtn.innerHTML = '<span>Download as CSV</span>';
-                }
-            }
-        }
-        
-        function updateExcelCollectionStats(collectionName, documentCount) {
-            excelCollectionNameStat.textContent = collectionName;
-            excelTotalDocumentsStat.textContent = documentCount.toLocaleString();
-            excelLastUpdatedStat.textContent = new Date().toLocaleString();
-            excelCollectionStats.classList.remove('hidden');
-        }
-        
-        function updateExcelPagination() {
-            const totalPages = Math.max(1, Math.ceil(excelTotalDocuments / pageSize));
-            excelPageInfo.textContent = `Page ${excelCurrentPage} of ${totalPages}`;
-            excelPrevPageBtn.disabled = excelCurrentPage <= 1;
-            excelNextPageBtn.disabled = excelCurrentPage >= totalPages;
-        }
-        
-        function showExcelLoading() {
-            excelDataLoading.classList.remove('hidden');
-            excelDataTableContainer.classList.add('hidden');
-            excelDataPagination.classList.add('hidden');
-            excelNoData.classList.add('hidden');
-        }
-        
-        function showNoExcelData(message = 'Select a collection to view its data.') {
-            excelDataLoading.classList.add('hidden');
-            excelDataTableContainer.classList.add('hidden');
-            excelDataPagination.classList.add('hidden');
-            excelNoData.classList.remove('hidden');
-            excelNoData.textContent = message;
-            excelCollectionStats.classList.add('hidden');
-        }
-        
-        function hideExcelData() {
-            excelDataLoading.classList.add('hidden');
-            excelDataTableContainer.classList.add('hidden');
-            excelDataPagination.classList.add('hidden');
-            excelNoData.classList.remove('hidden');
-            excelCollectionStats.classList.add('hidden');
-        }
-        
         function initializeMetadata(allSheetsData) {
             sheetsMetadata = {};
             for (const sheetName in allSheetsData) {
@@ -4192,10 +3411,6 @@ input:checked + .slider:before {
             } else if (viewName === 'dashboard') {
                 dashboardSubView.classList.remove('hidden');
                 dashboardSubTabBtn.classList.add('active');
-                // Refresh visualization collections when switching to dashboard
-                if (isFirebaseInitialized) {
-                    refreshVisualizationCollections();
-                }
             } else if (viewName === 'uploaded-data') {
                 uploadedDataSubView.classList.remove('hidden');
                 uploadedDataSubTabBtn.classList.add('active');
@@ -4206,10 +3421,6 @@ input:checked + .slider:before {
             } else if (viewName === 'excel') {
                 excelSubView.classList.remove('hidden');
                 excelSubTabBtn.classList.add('active');
-                // Refresh Excel collections when switching to this tab
-                if (isFirebaseInitialized) {
-                    refreshExcelCollections();
-                }
             }
         }
 
@@ -4260,16 +3471,11 @@ input:checked + .slider:before {
                 dropZone.innerHTML = DROP_ZONE_DEFAULT_HTML;
             }
             
-            // dashboardSubTabBtn.disabled = true;
+            dashboardSubTabBtn.disabled = true;
             
             // Reset uploaded data tab if no collections exist
             const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
             uploadedDataSubTabBtn.disabled = uploadedCollections.length === 0;
-            
-            // Reset Excel tab if no collections exist
-            if (excelSubTabBtn) {
-                excelSubTabBtn.disabled = uploadedCollections.length === 0;
-            }
             
             switchDataSubView('ingest');
             totalSheetsStat.textContent = '0'; 
@@ -4307,26 +3513,6 @@ input:checked + .slider:before {
             return sanitized === '' ? 'unnamed_field' : sanitized;
         }
         
-        function saveUploadedExcelFile(fileName, downloadURL) {
-            const uploadedFiles = JSON.parse(localStorage.getItem('excelUploads') || '[]');
-            const fileInfo = {
-                name: fileName,
-                url: downloadURL,
-                timestamp: new Date().toISOString(),
-                workbookName: fileName.substring(0, fileName.lastIndexOf('.')) || fileName
-            };
-            
-            // Add new file to the beginning of the array
-            uploadedFiles.unshift(fileInfo);
-            
-            // Keep only the last 20 uploads
-            if (uploadedFiles.length > 20) {
-                uploadedFiles.splice(20);
-            }
-            
-            localStorage.setItem('excelUploads', JSON.stringify(uploadedFiles));
-        }
-        
         function toggleTheme() {
             const root = document.documentElement;
             const isDark = themeToggleCheckbox.checked;
@@ -4347,323 +3533,6 @@ input:checked + .slider:before {
                 root.style.setProperty('--heading-color', '#0f172a');
                 root.style.setProperty('--border-color', '#e2e8f0');
                 root.style.setProperty('--subtle-text', '#64748b');
-            }
-        }
-        
-        // --- VISUALIZATION FUNCTIONS ---
-        
-        async function refreshVisualizationCollections() {
-            // Ensure Firebase is initialized
-            if (!isFirebaseInitialized || !db) {
-                console.warn('Firebase not initialized, using fallback method');
-                // We'll still try to populate collections from localStorage
-            }
-            
-            try {
-                console.log('Refreshing visualization collections...');
-                
-                // Clear existing options
-                if (visualizationCollectionSelector) {
-                    visualizationCollectionSelector.innerHTML = '<option value="">Select a collection...</option>';
-                }
-                
-                // Get collections from localStorage (same approach as other collection functions)
-                const collections = new Set();
-                
-                // Try to get collections from recent uploads
-                const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
-                console.log('Uploaded collections from localStorage:', uploadedCollections);
-                uploadedCollections.forEach(name => collections.add(name));
-                
-                // Add any collections from current sheets data
-                Object.keys(sheetsData).forEach(sheetName => {
-                    collections.add(sanitizeForFirestore(sheetName));
-                });
-                
-                const collectionNames = Array.from(collections).sort((a, b) => {
-                    // Prioritize recently uploaded collections
-                    const recentCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
-                    const aIsRecent = recentCollections.includes(a);
-                    const bIsRecent = recentCollections.includes(b);
-                    
-                    if (aIsRecent && !bIsRecent) return -1;
-                    if (!aIsRecent && bIsRecent) return 1;
-                    return a.localeCompare(b); // Alphabetical for same priority
-                });
-                
-                console.log('Found collections:', collectionNames);
-                
-                // Add options to selector
-                if (visualizationCollectionSelector) {
-                    collectionNames.forEach(name => {
-                        const option = document.createElement('option');
-                        option.value = name;
-                        option.textContent = name;
-                        visualizationCollectionSelector.appendChild(option);
-                    });
-                }
-                
-                // Enable generate button if there are collections
-                if (generateVisualizationBtn) {
-                    generateVisualizationBtn.disabled = collectionNames.length === 0;
-                }
-                
-            } catch (error) {
-                console.error('Error refreshing visualization collections:', error);
-                showAlert('Error loading collections: ' + error.message, 'danger');
-                
-                // Even in case of error, try to populate with any available data
-                try {
-                    const fallbackCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
-                    if (visualizationCollectionSelector && fallbackCollections.length > 0) {
-                        visualizationCollectionSelector.innerHTML = '<option value="">Select a collection...</option>';
-                        fallbackCollections.forEach(name => {
-                            const option = document.createElement('option');
-                            option.value = name;
-                            option.textContent = name;
-                            visualizationCollectionSelector.appendChild(option);
-                        });
-                    }
-                } catch (fallbackError) {
-                    console.error('Fallback error:', fallbackError);
-                }
-            }
-        }
-        
-        function handleVisualizationCollectionChange() {
-            const selectedCollection = visualizationCollectionSelector.value;
-            
-            // Enable generate button only if a collection is selected
-            if (generateVisualizationBtn) {
-                generateVisualizationBtn.disabled = !selectedCollection;
-            }
-            
-            // Hide chart type selection when no collection is selected
-            if (chartTypeSelection) {
-                chartTypeSelection.classList.toggle('hidden', !selectedCollection);
-            }
-            
-            // Reset column selectors when collection changes
-            if (xColumnSelector) xColumnSelector.innerHTML = '';
-            if (yColumnSelector) yColumnSelector.innerHTML = '';
-        }
-        
-        async function generateVisualizations() {
-            const selectedCollection = visualizationCollectionSelector.value;
-            
-            if (!selectedCollection) {
-                showAlert('Please select a collection first.', 'danger');
-                return;
-            }
-            
-            if (!isFirebaseInitialized || !db) {
-                showAlert('Firebase is not connected.', 'danger');
-                return;
-            }
-            
-            try {
-                // Show loading state
-                if (visualizationLoading) visualizationLoading.classList.remove('hidden');
-                if (noVisualizationData) noVisualizationData.classList.add('hidden');
-                if (visualizationResults) visualizationResults.classList.add('hidden');
-                
-                // Fetch data from the selected collection
-                const querySnapshot = await db.collection(selectedCollection).get();
-                const documents = querySnapshot.docs.map(doc => doc.data());
-                
-                if (documents.length === 0) {
-                    if (noVisualizationData) noVisualizationData.classList.remove('hidden');
-                    if (visualizationLoading) visualizationLoading.classList.add('hidden');
-                    return;
-                }
-                
-                // Call backend API to generate visualizations
-                const response = await fetch('http://localhost:5000/api/visualize-firestore', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        collection_name: selectedCollection
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    // Populate column selectors for chart creation
-                    if (xColumnSelector || yColumnSelector) {
-                        const columns = result.columns || [];
-                        if (xColumnSelector) {
-                            xColumnSelector.innerHTML = '<option value="">Select X-Axis Column...</option>';
-                            columns.forEach(column => {
-                                const option = document.createElement('option');
-                                option.value = column;
-                                option.textContent = column;
-                                xColumnSelector.appendChild(option);
-                            });
-                        }
-                        if (yColumnSelector) {
-                            yColumnSelector.innerHTML = '<option value="">Select Y-Axis Column...</option>';
-                            columns.forEach(column => {
-                                const option = document.createElement('option');
-                                option.value = column;
-                                option.textContent = column;
-                                yColumnSelector.appendChild(option);
-                            });
-                        }
-                    }
-                    
-                    // Show chart type selection
-                    if (chartTypeSelection) chartTypeSelection.classList.remove('hidden');
-                    
-                    // Hide loading and show results
-                    if (visualizationLoading) visualizationLoading.classList.add('hidden');
-                    if (visualizationResults) visualizationResults.classList.remove('hidden');
-                    
-                } else {
-                    throw new Error(result.message || 'Failed to generate visualizations');
-                }
-                
-            } catch (error) {
-                console.error('Error generating visualizations:', error);
-                showAlert('Error generating visualizations: ' + error.message, 'danger');
-                
-                // Hide loading and show error message
-                if (visualizationLoading) visualizationLoading.classList.add('hidden');
-                if (noVisualizationData) noVisualizationData.classList.remove('hidden');
-                if (noVisualizationData) noVisualizationData.innerHTML = `<p><strong>Error:</strong> ${error.message}</p><p>Please try again.</p>`;
-            }
-        }
-        
-        function handleChartTypeSelection(chartType) {
-            // Show column selection for chart types that need it
-            const needsColumnSelection = ['bar', 'scatter', 'line', 'histogram'];
-            
-            if (columnSelection) {
-                columnSelection.classList.toggle('hidden', !needsColumnSelection.includes(chartType));
-            }
-            
-            // Update labels based on chart type
-            const xLabel = document.querySelector('[for="x-column-selector"]');
-            const yLabel = document.querySelector('[for="y-column-selector"]');
-            
-            if (xLabel) {
-                if (chartType === 'histogram' || chartType === 'pie') {
-                    xLabel.textContent = 'Column';
-                } else {
-                    xLabel.textContent = 'X-Axis Column';
-                }
-            }
-            
-            // Special handling for histogram (only needs x-axis)
-            if (chartType === 'histogram' && yColumnSelector) {
-                yColumnSelector.closest('.select-wrapper').style.display = 'none';
-            } else if (yColumnSelector) {
-                yColumnSelector.closest('.select-wrapper').style.display = '';
-                if (yLabel) {
-                    yLabel.textContent = 'Y-Axis Column';
-                }
-            }
-            
-            // Special handling for pie chart (only needs x-axis)
-            if (chartType === 'pie' && yColumnSelector) {
-                yColumnSelector.closest('.select-wrapper').style.display = 'none';
-            } else if (chartType !== 'histogram' && yColumnSelector) {
-                yColumnSelector.closest('.select-wrapper').style.display = '';
-            }
-        }
-        
-        async function createChart() {
-            const selectedCollection = visualizationCollectionSelector.value;
-            const selectedChartType = document.querySelector('.chart-type-btn.active')?.getAttribute('data-chart-type') || 'bar';
-            const xColumn = xColumnSelector?.value;
-            const yColumn = yColumnSelector?.value;
-            
-            if (!selectedCollection) {
-                showAlert('Please select a collection first.', 'danger');
-                return;
-            }
-            
-            // Validate required columns based on chart type
-            const needsColumnSelection = ['bar', 'scatter', 'line'];
-            if (needsColumnSelection.includes(selectedChartType)) {
-                if (!xColumn) {
-                    showAlert('Please select an X-Axis column.', 'danger');
-                    return;
-                }
-                if (selectedChartType !== 'histogram' && selectedChartType !== 'pie' && !yColumn) {
-                    showAlert('Please select a Y-Axis column.', 'danger');
-                    return;
-                }
-            } else if (selectedChartType === 'histogram' || selectedChartType === 'pie') {
-                if (!xColumn) {
-                    showAlert('Please select a column.', 'danger');
-                    return;
-                }
-            }
-            
-            try {
-                // Show loading state
-                if (visualizationLoading) visualizationLoading.classList.remove('hidden');
-                
-                // Call backend API to generate specific chart
-                const response = await fetch('http://localhost:5000/api/generate-chart', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        collection_name: selectedCollection,
-                        chart_type: selectedChartType,
-                        x_column: xColumn,
-                        y_column: yColumn
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.status === 'success' && result.chart) {
-                    // Create chart container
-                    const chartContainer = document.createElement('div');
-                    chartContainer.className = 'chart-container';
-                    chartContainer.style.marginBottom = '2rem';
-                    
-                    const chartTitle = document.createElement('h3');
-                    chartTitle.textContent = `${selectedChartType.charAt(0).toUpperCase() + selectedChartType.slice(1)} Chart`;
-                    chartTitle.style.textAlign = 'center';
-                    chartTitle.style.marginBottom = '1rem';
-                    
-                    const chartDiv = document.createElement('div');
-                    chartDiv.id = `chart-${Date.now()}`;
-                    chartDiv.style.height = '400px';
-                    
-                    chartContainer.appendChild(chartTitle);
-                    chartContainer.appendChild(chartDiv);
-                    
-                    // Add to charts container
-                    if (visualizationChartsContainer) {
-                        visualizationChartsContainer.appendChild(chartContainer);
-                        
-                        // Render the chart using Plotly
-                        const chartData = JSON.parse(result.chart);
-                        Plotly.newPlot(chartDiv.id, chartData.data, chartData.layout);
-                    }
-                    
-                    // Hide loading
-                    if (visualizationLoading) visualizationLoading.classList.add('hidden');
-                    
-                    showAlert('Chart created successfully!', 'success');
-                } else {
-                    throw new Error(result.message || 'Failed to create chart');
-                }
-                
-            } catch (error) {
-                console.error('Error creating chart:', error);
-                showAlert('Error creating chart: ' + error.message, 'danger');
-                
-                // Hide loading
-                if (visualizationLoading) visualizationLoading.classList.add('hidden');
             }
         }
     </script>
