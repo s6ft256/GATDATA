@@ -109,6 +109,31 @@ The backend API provides advanced data processing capabilities. For detailed inf
 
 This application is a static website that connects to your Firebase project.
 
+### Rootless Deployment (Without Docker)
+
+For users who prefer not to use Docker, the application can be deployed directly on the host system:
+
+1. **Backend Setup**:
+   ```bash
+   # Install Python dependencies
+   cd backend
+   pip install -r requirements.txt
+   
+   # Run the backend server
+   python app.py
+   ```
+
+2. **Frontend Setup**:
+   ```bash
+   # Install frontend dependencies
+   npm install
+   
+   # Start development server
+   npm run dev
+   ```
+
+For detailed instructions, see [ROOTLESS_DEPLOYMENT.md](ROOTLESS_DEPLOYMENT.md)
+
 ### 1. Create a Firebase Project
 
 1.  Go to the [Firebase Console](https://console.firebase.google.com/).

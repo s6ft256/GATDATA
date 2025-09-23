@@ -12,7 +12,9 @@
     "backend:install": "cd backend && pip install -r requirements.txt",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "setup:rootless": "setup_all_rootless.bat",
+    "start:rootless": "run_all_rootless.bat"
   },
   "dependencies": {
   },

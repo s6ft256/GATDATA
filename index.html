@@ -8,8 +8,69 @@
     
     <!-- CDN for SheetJS (xlsx) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- CDN for React -->
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <!-- CDN for Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <script>
+        // Ensure React is available on window object
+        if (typeof window.React === 'undefined' && typeof React !== 'undefined') {
+            window.React = React;
+        }
+        if (typeof window.ReactDOM === 'undefined' && typeof ReactDOM !== 'undefined') {
+            window.ReactDOM = ReactDOM;
+        }
+        
+        // Additional check to ensure React is properly loaded
+        window.addEventListener('load', function() {
+            if (typeof window.React === 'undefined' && typeof React !== 'undefined') {
+                window.React = React;
+            }
+            if (typeof window.ReactDOM === 'undefined' && typeof ReactDOM !== 'undefined') {
+                window.ReactDOM = ReactDOM;
+            }
+        });
+    </script>
+    
+    <!-- Wait for React to load -->
+    <script>
+        function waitForReact(callback, attempts = 0) {
+            if (attempts > 50) {
+                console.error('React failed to load after 50 attempts');
+                return;
+            }
+            
+            if (typeof window.React !== 'undefined' && typeof window.ReactDOM !== 'undefined') {
+                callback();
+            } else {
+                setTimeout(() => waitForReact(callback, attempts + 1), 100);
+            }
+        }
+        
+        // Initialize app when React is ready
+        waitForReact(() => {
+            console.log('React is ready');
+        });
+    </script>
     <!-- CDN for Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <!-- Additional Chart.js plugin for better compatibility -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script>
+        // Ensure Chart.js is properly attached to window object
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Chart !== 'undefined' && typeof window.Chart === 'undefined') {
+                window.Chart = Chart;
+            }
+        });
+        
+        window.addEventListener('load', function() {
+            if (typeof Chart !== 'undefined' && typeof window.Chart === 'undefined') {
+                window.Chart = Chart;
+            }
+        });
+    </script>
     <!-- CDN for Plotly.js -->
     <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.24.1/plotly.min.js"></script>
     
@@ -683,123 +744,10 @@ input:checked + .slider:before {
                         </div>
 
                         <div id="dashboard-subview" class="view-content hidden">
-                            <!-- Overview Stats & Charts -->
-                            <div class="stats-grid">
-                                <div id="sheets-stat-card" class="stat-card">
-                                    <h3>Total Sheets</h3>
-                                    <p id="total-sheets-stat">0</p>
-                                </div>
-                                <div id="rows-stat-card" class="stat-card">
-                                    <h3>Total Rows</h3>
-                                    <p id="total-rows-stat">0</p>
-                                </div>
-                                <div id="cols-stat-card" class="stat-card">
-                                    <h3>Total Columns</h3>
-                                    <p id="total-cols-stat">0</p>
-                                </div>
-                            </div>
-                            <div class="charts-grid">
-                                <div class="chart-container">
-                                    <h3>Row Distribution by Sheet</h3>
-                                    <canvas id="rows-pie-chart"></canvas>
-                                </div>
-                                <div class="chart-container">
-                                    <h3>Data Type Distribution</h3>
-                                    <canvas id="types-pie-chart"></canvas>
-                                </div>
-                            </div>
-                            
-                            <!-- Firestore Data Visualization Section -->
-                            <div id="firestore-visualization-section" class="card" style="margin-top: 2rem;">
-                                <div class="analysis-header">
-                                    <h2>Firestore Data Visualization</h2>
-                                    <div class="analysis-controls">
-                                        <div class="select-wrapper">
-                                            <label for="visualization-collection-selector">Collection</label>
-                                            <select id="visualization-collection-selector">
-                                                <option value="">Select a collection...</option>
-                                            </select>
-                                        </div>
-                                        <button id="refresh-visualization-collections-btn" class="btn btn-primary">
-                                            <span>Refresh Collections</span>
-                                        </button>
-                                        <button id="generate-visualization-btn" class="btn" style="background-color: var(--success-color); color: white;" disabled>
-                                            <span>Generate Visualizations</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Chart Type Selection -->
-                                <div id="chart-type-selection" class="hidden" style="margin-top: 1rem;">
-                                    <h3>Select Chart Type</h3>
-                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
-                                        <button class="chart-type-btn" data-chart-type="bar">Bar Chart</button>
-                                        <button class="chart-type-btn" data-chart-type="scatter">Scatter Plot</button>
-                                        <button class="chart-type-btn" data-chart-type="line">Line Chart</button>
-                                        <button class="chart-type-btn" data-chart-type="histogram">Histogram</button>
-                                        <button class="chart-type-btn" data-chart-type="pie">Pie Chart</button>
-                                    </div>
-                                    
-                                    <!-- Column Selection for Charts -->
-                                    <div id="column-selection" class="hidden" style="margin-top: 1rem;">
-                                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                                            <div class="select-wrapper">
-                                                <label for="x-column-selector">X-Axis Column</label>
-                                                <select id="x-column-selector"></select>
-                                            </div>
-                                            <div class="select-wrapper">
-                                                <label for="y-column-selector">Y-Axis Column</label>
-                                                <select id="y-column-selector"></select>
-                                            </div>
-                                        </div>
-                                        <button id="create-chart-btn" class="btn btn-primary" style="margin-top: 1rem;">
-                                            <span>Create Chart</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Visualization Results -->
-                                <div id="visualization-results" class="hidden" style="margin-top: 2rem;">
-                                    <div id="visualization-charts-container">
-                                        <!-- Charts will be dynamically inserted here -->
-                                    </div>
-                                </div>
-                                
-                                <!-- Visualization Loading Indicator -->
-                                <div id="visualization-loading" class="hidden" style="text-align: center; padding: 2rem;">
-                                    <div class="spinner" style="width: 32px; height: 32px; border-width: 4px; margin: 0 auto 1rem;"></div>
-                                    <p>Generating visualizations...</p>
-                                </div>
-                                
-                                <!-- No Data Message -->
-                                <div id="no-visualization-data" class="placeholder-text">
-                                    <p><strong>No visualization data available</strong></p>
-                                    <p>Select a collection and click "Generate Visualizations" to create charts from your data.</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Column Analysis Section -->
-                            <div id="column-analysis-section" class="card hidden">
-                                <div class="analysis-header">
-                                    <h2>Column Analysis</h2>
-                                    <div class="analysis-controls">
-                                        <div class="select-wrapper">
-                                            <label for="sheet-selector">Sheet</label>
-                                            <select id="sheet-selector"></select>
-                                        </div>
-                                        <div class="select-wrapper">
-                                            <label for="column-selector">Column</label>
-                                            <select id="column-selector"></select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div id="analysis-results" class="hidden">
-                                    <div id="analysis-stats-grid"></div>
-                                    <div id="analysis-chart-container">
-                                        <canvas id="analysis-chart"></canvas>
-                                    </div>
-                                </div>
-                                <p id="analysis-placeholder" class="placeholder-text">Select a sheet and column to see a detailed analysis.</p>
+                            <!-- React Dashboard Component Integration -->
+                            <div id="dashboard-container" class="card">
+                                <h2>Dashboard</h2>
+                                <div id="react-dashboard-root"></div>
                             </div>
                         </div>
 
@@ -974,7 +922,7 @@ input:checked + .slider:before {
                         </div>
                     </div>
                     
-                    <div style="margin-top: 3rem; background-color: transparent; padding: 2rem; border-radius: 15px; background: linear-gradient(rgba(72, 69, 69, 0.7), rgba(98, 74, 74, 0.7)), url('hse.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed; background-origin: border-box; background-clip: border-box; border: 1px solid rgba(255, 255, 255, 0.05); position: relative; z-index: 2;">
+                    <div style="margin-top: 3rem; background-color: transparent; padding: 2rem; border-radius: 15px; background: linear-gradient(rgba(72, 69, 69, 0.7), rgba(98, 74, 74, 0.7)), url('https://hsewatch.com/wp-content/uploads/2022/07/Difference-Between-a-HSE-Officer-and-HSE-Manager-2048x1365.webp'); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed; background-origin: border-box; background-clip: border-box; border: 1px solid rgba(255, 255, 255, 0.05); position: relative; z-index: 2;">
                         <h3 style="color: white; text-shadow: 2px 2px 4px rgba(120, 115, 115, 0.7); text-align: center; margin-bottom: 1.5rem; font-weight: 700;">What is HSE Management?</h3>
                         <p style="color: #e2e8f0; text-shadow: 1px 1px 2px rgba(117, 111, 111, 0.7); max-width: 900px; margin: 0 auto 2rem; font-size: 1.1rem; line-height: 1.6;">HSE (Health, Safety, and Environment) management is a systematic approach to managing risks and ensuring compliance with health, safety, and environmental regulations. It encompasses policies, procedures, and practices designed to protect workers, the public, and the environment from harm.</p>
                         
@@ -1288,13 +1236,7 @@ input:checked + .slider:before {
                 </div>
             </div>
 
-            <!-- Home Tab Content -->
-            <div id="home-view" class="view-content">
-                <div class="card">
-                </div>
-            </div>
-
-            <!-- News Tab Content -->
+                        <!-- News Tab Content -->
             <div id="news-view" class="view-content hidden">
                 <div class="card">
                     <h2>Latest News</h2>
@@ -1575,6 +1517,9 @@ input:checked + .slider:before {
                 db = firebase.firestore();
                 storage = firebase.storage();
                 
+                // Attach db to window object for dashboard component access
+                window.db = db;
+                
                 // Test the connection
                 await db.enableNetwork();
                 isFirebaseInitialized = true;
@@ -1607,7 +1552,7 @@ input:checked + .slider:before {
             // Auto-enable tabs if collections exist
             const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
             if (uploadedCollections.length > 0) {
-                uploadedDataSubTabBtn.disabled = false;
+                if (uploadedDataSubTabBtn) uploadedDataSubTabBtn.disabled = false;
                 if (excelSubTabBtn) {
                     excelSubTabBtn.disabled = false;
                 }
@@ -1767,8 +1712,10 @@ input:checked + .slider:before {
         const totalSheetsStat = document.getElementById('total-sheets-stat');
         const totalRowsStat = document.getElementById('total-rows-stat');
         const totalColsStat = document.getElementById('total-cols-stat');
-        const rowsPieChartCtx = document.getElementById('rows-pie-chart').getContext('2d');
-        const typesPieChartCtx = document.getElementById('types-pie-chart').getContext('2d');
+        const rowsPieChartElement = document.getElementById('rows-pie-chart');
+        const typesPieChartElement = document.getElementById('types-pie-chart');
+        const rowsPieChartCtx = rowsPieChartElement ? rowsPieChartElement.getContext('2d') : null;
+        const typesPieChartCtx = typesPieChartElement ? typesPieChartElement.getContext('2d') : null;
         let rowsPieChart = null, typesPieChart = null;
 
         // Visualization elements
@@ -1791,7 +1738,8 @@ input:checked + .slider:before {
         const columnSelector = document.getElementById('column-selector');
         const analysisResults = document.getElementById('analysis-results');
         const analysisStatsGrid = document.getElementById('analysis-stats-grid');
-        const analysisChartCtx = document.getElementById('analysis-chart').getContext('2d');
+        const analysisChartElement = document.getElementById('analysis-chart');
+        const analysisChartCtx = analysisChartElement ? analysisChartElement.getContext('2d') : null;
         const analysisPlaceholder = document.getElementById('analysis-placeholder');
         let analysisChart = null;
 
@@ -3047,24 +2995,27 @@ input:checked + .slider:before {
             totalRowsStat.textContent = totalRows.toLocaleString();
             totalColsStat.textContent = totalCols.toLocaleString();
 
-            const chartColors = ['#4f46e5', '#10b981', '#f97316', '#8b5cf6', '#ec4899', '#f59e0b', '#34d399', '#6d28d9'];
+            // Only render charts if canvas elements exist
+            if (rowsPieChartCtx && typesPieChartCtx) {
+                const chartColors = ['#4f46e5', '#10b981', '#f97316', '#8b5cf6', '#ec4899', '#f59e0b', '#34d399', '#6d28d9'];
 
-            const rowsData = {
-                labels: sheetNames,
-                datasets: [{ data: sheetNames.map(name => sData[name].length), backgroundColor: chartColors, hoverOffset: 4 }]
-            };
-            if (rowsPieChart) rowsPieChart.destroy();
-            rowsPieChart = new Chart(rowsPieChartCtx, { type: 'pie', data: rowsData, options: { responsive: true, plugins: { legend: { position: 'top', labels: { font: { size: 12 } } } } } });
-            
-            const typeCounts = {};
-            Object.values(sMetadata).forEach(sheet => { sheet.columns.forEach(col => { typeCounts[col.userType] = (typeCounts[col.userType] || 0) + 1; }); });
-            const typeLabels = Object.keys(typeCounts);
-            const typesData = {
-                labels: SUPPORTED_TYPES.filter(t => typeLabels.includes(t.value)).map(t => t.label),
-                datasets: [{ data: SUPPORTED_TYPES.filter(t => typeLabels.includes(t.value)).map(t => typeCounts[t.value]), backgroundColor: chartColors, hoverOffset: 4 }]
-            };
-            if (typesPieChart) typesPieChart.destroy();
-            typesPieChart = new Chart(typesPieChartCtx, { type: 'pie', data: typesData, options: { responsive: true, plugins: { legend: { position: 'top', labels: { font: { size: 12 } } } } } });
+                const rowsData = {
+                    labels: sheetNames,
+                    datasets: [{ data: sheetNames.map(name => sData[name].length), backgroundColor: chartColors, hoverOffset: 4 }]
+                };
+                if (rowsPieChart) rowsPieChart.destroy();
+                rowsPieChart = new Chart(rowsPieChartCtx, { type: 'pie', data: rowsData, options: { responsive: true, plugins: { legend: { position: 'top', labels: { font: { size: 12 } } } } } });
+                
+                const typeCounts = {};
+                Object.values(sMetadata).forEach(sheet => { sheet.columns.forEach(col => { typeCounts[col.userType] = (typeCounts[col.userType] || 0) + 1; }); });
+                const typeLabels = Object.keys(typeCounts);
+                const typesData = {
+                    labels: SUPPORTED_TYPES.filter(t => typeLabels.includes(t.value)).map(t => t.label),
+                    datasets: [{ data: SUPPORTED_TYPES.filter(t => typeLabels.includes(t.value)).map(t => typeCounts[t.value]), backgroundColor: chartColors, hoverOffset: 4 }]
+                };
+                if (typesPieChart) typesPieChart.destroy();
+                typesPieChart = new Chart(typesPieChartCtx, { type: 'pie', data: typesData, options: { responsive: true, plugins: { legend: { position: 'top', labels: { font: { size: 12 } } } } } });
+            }
         }
 
         function initializeColumnAnalysis() {
@@ -3145,6 +3096,12 @@ input:checked + .slider:before {
         }
 
         function renderAnalysisChart(data, type, columnName) {
+            // Only render chart if canvas element exists
+            if (!analysisChartCtx) {
+                analysisChart = null;
+                return;
+            }
+            
             if (analysisChart) analysisChart.destroy();
             
             const chartColors = ['#4f46e5', '#10b981', '#f97316', '#8b5cf6', '#ec4899', '#f59e0b', '#34d399', '#6d28d9'];
@@ -3702,17 +3659,17 @@ input:checked + .slider:before {
         }
         
         function updateCollectionStats(collectionName, documentCount) {
-            collectionNameStat.textContent = collectionName;
-            totalDocumentsStat.textContent = documentCount.toLocaleString();
-            lastUpdatedStat.textContent = new Date().toLocaleString();
-            collectionStats.classList.remove('hidden');
+            if (collectionNameStat) collectionNameStat.textContent = collectionName;
+            if (totalDocumentsStat) totalDocumentsStat.textContent = documentCount.toLocaleString();
+            if (lastUpdatedStat) lastUpdatedStat.textContent = new Date().toLocaleString();
+            if (collectionStats) collectionStats.classList.remove('hidden');
         }
         
         function updatePagination() {
             const totalPages = Math.max(1, Math.ceil(totalDocuments / pageSize));
-            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
-            prevPageBtn.disabled = currentPage <= 1;
-            nextPageBtn.disabled = currentPage >= totalPages;
+            if (pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+            if (prevPageBtn) prevPageBtn.disabled = currentPage <= 1;
+            if (nextPageBtn) nextPageBtn.disabled = currentPage >= totalPages;
         }
         
         function showFirebaseLoading() {
@@ -4006,17 +3963,17 @@ input:checked + .slider:before {
         }
         
         function updateExcelCollectionStats(collectionName, documentCount) {
-            excelCollectionNameStat.textContent = collectionName;
-            excelTotalDocumentsStat.textContent = documentCount.toLocaleString();
-            excelLastUpdatedStat.textContent = new Date().toLocaleString();
-            excelCollectionStats.classList.remove('hidden');
+            if (excelCollectionNameStat) excelCollectionNameStat.textContent = collectionName;
+            if (excelTotalDocumentsStat) excelTotalDocumentsStat.textContent = documentCount.toLocaleString();
+            if (excelLastUpdatedStat) excelLastUpdatedStat.textContent = new Date().toLocaleString();
+            if (excelCollectionStats) excelCollectionStats.classList.remove('hidden');
         }
         
         function updateExcelPagination() {
             const totalPages = Math.max(1, Math.ceil(excelTotalDocuments / pageSize));
-            excelPageInfo.textContent = `Page ${excelCurrentPage} of ${totalPages}`;
-            excelPrevPageBtn.disabled = excelCurrentPage <= 1;
-            excelNextPageBtn.disabled = excelCurrentPage >= totalPages;
+            if (excelPageInfo) excelPageInfo.textContent = `Page ${excelCurrentPage} of ${totalPages}`;
+            if (excelPrevPageBtn) excelPrevPageBtn.disabled = excelCurrentPage <= 1;
+            if (excelNextPageBtn) excelNextPageBtn.disabled = excelCurrentPage >= totalPages;
         }
         
         function showExcelLoading() {
@@ -4174,41 +4131,521 @@ input:checked + .slider:before {
 
         function switchDataSubView(viewName) {
             // Hide all data sub-views
-            ingestSubView.classList.add('hidden');
-            dashboardSubView.classList.add('hidden');
-            uploadedDataSubView.classList.add('hidden');
-            excelSubView.classList.add('hidden');
+            if (ingestSubView) ingestSubView.classList.add('hidden');
+            if (dashboardSubView) dashboardSubView.classList.add('hidden');
+            if (uploadedDataSubView) uploadedDataSubView.classList.add('hidden');
+            if (excelSubView) excelSubView.classList.add('hidden');
             
             // Remove active class from all data sub-tabs
-            ingestSubTabBtn.classList.remove('active');
-            dashboardSubTabBtn.classList.remove('active');
-            uploadedDataSubTabBtn.classList.remove('active');
-            excelSubTabBtn.classList.remove('active');
+            if (ingestSubTabBtn) ingestSubTabBtn.classList.remove('active');
+            if (dashboardSubTabBtn) dashboardSubTabBtn.classList.remove('active');
+            if (uploadedDataSubTabBtn) uploadedDataSubTabBtn.classList.remove('active');
+            if (excelSubTabBtn) excelSubTabBtn.classList.remove('active');
             
             // Show the selected sub-view
             if (viewName === 'ingest') {
-                ingestSubView.classList.remove('hidden');
-                ingestSubTabBtn.classList.add('active');
+                if (ingestSubView) ingestSubView.classList.remove('hidden');
+                if (ingestSubTabBtn) ingestSubTabBtn.classList.add('active');
             } else if (viewName === 'dashboard') {
-                dashboardSubView.classList.remove('hidden');
-                dashboardSubTabBtn.classList.add('active');
+                if (dashboardSubView) dashboardSubView.classList.remove('hidden');
+                if (dashboardSubTabBtn) dashboardSubTabBtn.classList.add('active');
+                
+                // Render the React Dashboard component
+                console.log('Switching to dashboard view, rendering component');
+                // Add a small delay to ensure React is fully loaded
+                setTimeout(() => {
+                    renderDashboardComponent();
+                }, 300);
+                
                 // Refresh visualization collections when switching to dashboard
                 if (isFirebaseInitialized) {
                     refreshVisualizationCollections();
                 }
             } else if (viewName === 'uploaded-data') {
-                uploadedDataSubView.classList.remove('hidden');
-                uploadedDataSubTabBtn.classList.add('active');
+                if (uploadedDataSubView) uploadedDataSubView.classList.remove('hidden');
+                if (uploadedDataSubTabBtn) uploadedDataSubTabBtn.classList.add('active');
                 // Auto-load data when switching to this tab
                 if (isFirebaseInitialized) {
                     autoLoadUploadedData();
                 }
             } else if (viewName === 'excel') {
-                excelSubView.classList.remove('hidden');
-                excelSubTabBtn.classList.add('active');
+                if (excelSubView) excelSubView.classList.remove('hidden');
+                if (excelSubTabBtn) excelSubTabBtn.classList.add('active');
                 // Refresh Excel collections when switching to this tab
                 if (isFirebaseInitialized) {
                     refreshExcelCollections();
+                }
+            }
+        }
+
+        function renderDashboardComponent() {
+            try {
+                // Show the dashboard container first
+                const dashboardContainer = document.getElementById('dashboard-container');
+                const dashboardSubView = document.getElementById('dashboard-subview');
+                
+                if (dashboardContainer) {
+                    dashboardContainer.classList.remove('hidden');
+                }
+                
+                if (dashboardSubView) {
+                    dashboardSubView.classList.remove('hidden');
+                }
+                
+                // Check if React is available with multiple fallbacks
+                if (typeof window.React !== 'undefined' && typeof window.ReactDOM !== 'undefined') {
+                    // React is available on window object
+                    console.log('React is available on window object');
+                    // Add a small delay to ensure all elements are properly loaded
+                    setTimeout(() => {
+                        // Render the enhanced dashboard component if available, otherwise fallback to inline
+                        if (typeof renderEnhancedDashboard === 'function') {
+                            renderEnhancedDashboard();
+                        } else {
+                            renderInlineDashboard();
+                        }
+                    }, 100);
+                } else if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+                    // React is available in global scope, attach to window
+                    console.log('Attaching React to window object');
+                    window.React = React;
+                    window.ReactDOM = ReactDOM;
+                    
+                    // Add a small delay to ensure all elements are properly loaded
+                    setTimeout(() => {
+                        // Render the enhanced dashboard component if available, otherwise fallback to inline
+                        if (typeof renderEnhancedDashboard === 'function') {
+                            renderEnhancedDashboard();
+                        } else {
+                            renderInlineDashboard();
+                        }
+                    }, 100);
+                } else {
+                    // Try one more time after a delay
+                    console.log('React not immediately available, trying again after delay');
+                    setTimeout(() => {
+                        if (typeof window.React !== 'undefined' && typeof window.ReactDOM !== 'undefined') {
+                            console.log('React is now available on window object');
+                            if (typeof renderEnhancedDashboard === 'function') {
+                                renderEnhancedDashboard();
+                            } else {
+                                renderInlineDashboard();
+                            }
+                        } else if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+                            console.log('Attaching React to window object after delay');
+                            window.React = React;
+                            window.ReactDOM = ReactDOM;
+                            if (typeof renderEnhancedDashboard === 'function') {
+                                renderEnhancedDashboard();
+                            } else {
+                                renderInlineDashboard();
+                            }
+                        } else {
+                            // Fallback: Show a message if React is not available
+                            console.log('React is not available after all attempts');
+                            const container = document.getElementById('react-dashboard-root');
+                            if (container) {
+                                container.innerHTML = '<div class="placeholder-text"><p>React is not available. Please make sure all scripts are loaded properly.</p><p>Current state: window.React=' + (typeof window.React) + ', window.ReactDOM=' + (typeof window.ReactDOM) + '</p></div>';
+                            }
+                        }
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('Error in renderDashboardComponent:', error);
+                // Fallback: Show a message if React is not available
+                const container = document.getElementById('react-dashboard-root');
+                if (container) {
+                    container.innerHTML = '<div class="placeholder-text"><p>Error rendering dashboard: ' + error.message + '</p></div>';
+                }
+            }
+        }
+
+        function renderInlineDashboard() {
+            // Create a simple Dashboard component directly in the browser
+            const Dashboard = () => {
+                // Check if window.React is available
+                if (!window.React) {
+                    const container = document.getElementById('react-dashboard-root');
+                    if (container) {
+                        container.innerHTML = '<div class="placeholder-text"><p>React is not available on window object.</p><p>Debug info: window.React=' + (typeof window.React) + ', React=' + (typeof React) + '</p></div>';
+                    }
+                    return null;
+                }
+                // Check if React hooks are available
+                if (typeof window.React.useState !== 'function' || typeof window.React.useEffect !== 'function' || typeof window.React.useRef !== 'function') {
+                    const container = document.getElementById('react-dashboard-root');
+                    if (container) {
+                        container.innerHTML = '<div class="placeholder-text"><p>React hooks are not available. Please make sure all scripts are loaded properly.</p><p>Debug info: useState=' + (typeof window.React.useState) + ', useEffect=' + (typeof window.React.useEffect) + ', useRef=' + (typeof window.React.useRef) + '</p></div>';
+                    }
+                    return null;
+                }
+                
+                const [sheets, setSheets] = window.React.useState([]);
+                const [loading, setLoading] = window.React.useState(true);
+                const [error, setError] = window.React.useState(null);
+                const chartsRef = window.React.useRef({});
+
+                // Function to determine chart type based on data structure
+                const determineChartType = (data) => {
+                    if (!data || data.length === 0) return 'bar';
+
+                    const firstRow = data[0];
+                    const keys = Object.keys(firstRow);
+                    
+                    // If data has many columns, use bar chart
+                    if (keys.length > 5) return 'bar';
+                    
+                    // Check if we have numerical data for potential line chart
+                    const numericalColumns = keys.filter(key => {
+                        return data.some(row => typeof row[key] === 'number' && !isNaN(row[key]));
+                    });
+                    
+                    // If we have time-series-like data, use line chart
+                    if (numericalColumns.length >= 2) return 'line';
+                    
+                    // If we have categorical data with counts, use pie chart
+                    return 'pie';
+                };
+
+                // Function to generate chart data based on sheet data
+                const generateChartData = (sheetName, data) => {
+                    if (!data || data.length === 0) {
+                        return {
+                            labels: [],
+                            datasets: [{
+                                label: 'No Data',
+                                data: [],
+                                backgroundColor: [
+                                    'rgba(75, 192, 192, 0.6)',
+                                    'rgba(54, 162, 235, 0.6)',
+                                    'rgba(255, 206, 86, 0.6)',
+                                    'rgba(153, 102, 255, 0.6)',
+                                    'rgba(255, 159, 64, 0.6)'
+                                ]
+                            }]
+                        };
+                    }
+
+                    const firstRow = data[0];
+                    const keys = Object.keys(firstRow);
+                    
+                    // For pie chart - use first column as labels, second as values if possible
+                    if (keys.length >= 2) {
+                        const labelKey = keys[0];
+                        const valueKey = keys.find(key => typeof data[0][key] === 'number') || keys[1];
+                        
+                        // Aggregate data by label key
+                        const aggregatedData = {};
+                        data.forEach(row => {
+                            const label = String(row[labelKey]);
+                            const value = typeof row[valueKey] === 'number' ? row[valueKey] : 1;
+                            aggregatedData[label] = (aggregatedData[label] || 0) + value;
+                        });
+                        
+                        return {
+                            labels: Object.keys(aggregatedData),
+                            datasets: [{
+                                label: valueKey,
+                                data: Object.values(aggregatedData),
+                                backgroundColor: [
+                                    'rgba(75, 192, 192, 0.6)',
+                                    'rgba(54, 162, 235, 0.6)',
+                                    'rgba(255, 206, 86, 0.6)',
+                                    'rgba(153, 102, 255, 0.6)',
+                                    'rgba(255, 159, 64, 0.6)',
+                                    'rgba(199, 199, 199, 0.6)',
+                                    'rgba(83, 102, 255, 0.6)',
+                                    'rgba(210, 102, 255, 0.6)'
+                                ]
+                            }]
+                        };
+                    }
+                    
+                    // For other charts, use simple count
+                    return {
+                        labels: data.map((_, index) => `Row ${index + 1}`),
+                        datasets: [{
+                            label: 'Record Count',
+                            data: data.map(() => 1),
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                        }]
+                    };
+                };
+
+                // Function to render chart
+                const renderChart = (sheetName, data) => {
+                    // Ensure Chart.js is available
+                    if (typeof window === 'undefined' || !window.Chart) {
+                        console.warn('Chart.js not available');
+                        return;
+                    }
+
+                    const ChartJS = window.Chart;
+                    const chartType = determineChartType(data);
+                    const chartData = generateChartData(sheetName, data);
+                    
+                    // Clean up existing chart if it exists
+                    const canvasId = `chart-${sheetName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                    if (chartsRef.current[canvasId]) {
+                        // Safely destroy chart
+                        try {
+                            if (chartsRef.current[canvasId] && chartsRef.current[canvasId]['destroy']) {
+                                chartsRef.current[canvasId]['destroy']();
+                            }
+                        } catch (e) {
+                            console.warn('Error destroying chart:', e);
+                        }
+                        delete chartsRef.current[canvasId];
+                    }
+                    
+                    // Create new chart
+                    const canvas = document.getElementById(canvasId);
+                    if (canvas) {
+                        // Ensure canvas context is available
+                        const ctx = canvas.getContext('2d');
+                        if (ctx) {
+                            // Make sure ChartJS is properly initialized
+                            if (ChartJS && typeof ChartJS === 'function') {
+                                chartsRef.current[canvasId] = new ChartJS(ctx, {
+                                    type: chartType,
+                                    data: chartData,
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            legend: {
+                                                position: 'top',
+                                            },
+                                            title: {
+                                                display: true,
+                                                text: sheetName
+                                            }
+                                        }
+                                    }
+                                });
+                            } else {
+                                console.warn('ChartJS constructor not available');
+                            }
+                        } else {
+                            console.warn('Canvas context not available for', canvasId);
+                        }
+                    } else {
+                        console.warn('Canvas element not found for', canvasId);
+                    }
+                };
+
+                // Fetch collections and set up real-time listeners
+                window.React.useEffect(() => {
+                    // Check if Firebase is initialized
+                    if (typeof window === 'undefined') {
+                        setError('Window object not available');
+                        setLoading(false);
+                        return;
+                    }
+                    
+                    if (!window.db) {
+                        setError('Firebase database not available');
+                        setLoading(false);
+                        return;
+                    }
+                    
+                    if (!isFirebaseInitialized) {
+                        setError('Firebase not initialized');
+                        setLoading(false);
+                        return;
+                    }
+
+                    const db = window.db;
+                    
+                    // Function to fetch data for collections
+                    const fetchData = async () => {
+                        try {
+                            setLoading(true);
+                            
+                            // Get list of collections from localStorage
+                            const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
+                            
+                            if (uploadedCollections.length === 0) {
+                                setSheets([]);
+                                setLoading(false);
+                                return;
+                            }
+                            
+                            // Fetch data for each collection
+                            const sheetsData = [];
+                            for (const collectionName of uploadedCollections) {
+                                try {
+                                    const querySnapshot = await db.collection(collectionName).get();
+                                    const data = [];
+                                    querySnapshot.forEach((doc) => {
+                                        data.push({ id: doc.id, ...doc.data() });
+                                    });
+                                    
+                                    sheetsData.push({ name: collectionName, data });
+                                } catch (err) {
+                                    console.error(`Error fetching data for ${collectionName}:`, err);
+                                    // Continue with other collections even if one fails
+                                }
+                            }
+                            
+                            setSheets(sheetsData);
+                            setLoading(false);
+                        } catch (err) {
+                            setError('Failed to fetch data from Firestore: ' + err.message);
+                            setLoading(false);
+                            console.error('Error fetching data:', err);
+                        }
+                    };
+                    
+                    fetchData();
+                    
+                    // Cleanup function
+                    return () => {
+                        // Destroy all charts
+                        Object.values(chartsRef.current).forEach(chart => {
+                            // Safely destroy chart
+                            try {
+                                if (chart && chart['destroy']) {
+                                    chart['destroy']();
+                                }
+                            } catch (e) {
+                                console.warn('Error destroying chart:', e);
+                            }
+                        });
+                        chartsRef.current = {};
+                    };
+                }, []);
+
+                // Render charts when sheets data changes
+                window.React.useEffect(() => {
+                    if (!loading && !error) {
+                        sheets.forEach(sheet => {
+                            // Use setTimeout to ensure DOM is ready
+                            setTimeout(() => renderChart(sheet.name, sheet.data), 100);
+                        });
+                    }
+                }, [sheets, loading, error]);
+
+                if (loading) {
+                    return window.React.createElement('div', { className: 'card' },
+                        window.React.createElement('h2', null, 'Dashboard'),
+                        window.React.createElement('div', { className: 'placeholder-text' },
+                            window.React.createElement('p', null, 'Loading data from Firestore...')
+                        )
+                    );
+                }
+
+                if (error) {
+                    return window.React.createElement('div', { className: 'card' },
+                        window.React.createElement('h2', null, 'Dashboard'),
+                        window.React.createElement('div', { className: 'placeholder-text' },
+                            window.React.createElement('p', null, `Error: ${error}`),
+                            window.React.createElement('p', null, 'Please make sure Firestore is properly configured and you have internet connection.')
+                        )
+                    );
+                }
+
+                if (sheets.length === 0) {
+                    return window.React.createElement('div', { className: 'card' },
+                        window.React.createElement('h2', null, 'Dashboard'),
+                        window.React.createElement('div', { className: 'placeholder-text' },
+                            window.React.createElement('p', null, 'No data available yet. Upload an Excel file to see charts.'),
+                            window.React.createElement('p', null, 'Charts will automatically update when Firestore data changes.')
+                        )
+                    );
+                }
+
+                // Check if Chart.js is available before rendering charts
+                if (typeof window.Chart === 'undefined') {
+                    return window.React.createElement('div', { className: 'card' },
+                        window.React.createElement('h2', null, 'Dashboard'),
+                        window.React.createElement('div', { className: 'placeholder-text' },
+                            window.React.createElement('p', null, 'Chart.js library is not available. Please make sure all scripts are loaded properly.')
+                        )
+                    );
+                }
+
+                // Create chart elements
+                const chartElements = sheets
+                    .filter(sheet => sheet.data.length > 0)
+                    .map(sheet => 
+                        window.React.createElement('div', { className: 'chart-container', key: sheet.name, style: { height: '400px', position: 'relative', padding: '20px' } },
+                            window.React.createElement('canvas', { id: `chart-${sheet.name.replace(/[^a-zA-Z0-9]/g, '-')}`, style: { height: '100%', width: '100%' } })
+                        )
+                    );
+
+                return window.React.createElement('div', { className: 'card' },
+                    window.React.createElement('h2', null, 'Dashboard'),
+                    window.React.createElement('div', { className: 'charts-grid' }, ...chartElements)
+                );
+            };
+
+            // Render the Dashboard component
+            try {
+                console.log('Attempting to render dashboard component');
+                console.log('React availability: window.React=' + (typeof window.React) + ', window.ReactDOM=' + (typeof window.ReactDOM));
+                
+                // Check if React is available
+                if (typeof window.React === 'undefined' || typeof window.ReactDOM === 'undefined') {
+                    const container = document.getElementById('react-dashboard-root');
+                    if (container) {
+                        container.innerHTML = '<div class="placeholder-text"><p>React is not available. Please make sure all scripts are loaded properly.</p><p>Debug info: window.React=' + (typeof window.React) + ', window.ReactDOM=' + (typeof window.ReactDOM) + '</p></div>';
+                    }
+                    return;
+                }
+                
+                // Ensure React functions are available
+                if (typeof window.React.createElement !== 'function') {
+                    const container = document.getElementById('react-dashboard-root');
+                    if (container) {
+                        container.innerHTML = '<div class="placeholder-text"><p>React is not properly initialized. Please make sure all scripts are loaded properly.</p><p>Debug info: createElement=' + (typeof window.React.createElement) + '</p></div>';
+                    }
+                    return;
+                }
+                
+                // Check if window.ReactDOM.render is available
+                if (typeof window.ReactDOM.render !== 'function') {
+                    const container = document.getElementById('react-dashboard-root');
+                    if (container) {
+                        container.innerHTML = '<div class="placeholder-text"><p>ReactDOM is not properly initialized. Please make sure all scripts are loaded properly.</p><p>Debug info: ReactDOM.render=' + (typeof window.ReactDOM.render) + '</p></div>';
+                    }
+                    return;
+                }
+                            
+                // Check if Dashboard component is a function
+                if (typeof Dashboard !== 'function') {
+                    const container = document.getElementById('react-dashboard-root');
+                    if (container) {
+                        container.innerHTML = '<div class="placeholder-text"><p>Dashboard component is not properly defined.</p></div>';
+                    }
+                    return;
+                }
+                
+                const rootElement = window.React.createElement(Dashboard);
+                const container = document.getElementById('react-dashboard-root');
+                if (container) {
+                    console.log('Container found, attempting to render React component');
+                    // Check if Chart.js is loaded
+                    if (typeof window.Chart === 'undefined') {
+                        container.innerHTML = '<div class="placeholder-text"><p>Chart.js library is not loaded. Please make sure all scripts are loaded properly.</p><p>Debug info: window.Chart=' + (typeof window.Chart) + '</p></div>';
+                        return;
+                    }
+                    
+                    // Additional check for ChartJS constructor
+                    if (typeof window.Chart !== 'function') {
+                        container.innerHTML = '<div class="placeholder-text"><p>Chart.js is not properly initialized. Please make sure all scripts are loaded properly.</p><p>Debug info: Chart=' + (typeof window.Chart) + '</p></div>';
+                        return;
+                    }
+                    
+                    window.ReactDOM.render(rootElement, container);
+                } else {
+                    console.log('Container not found');
+                }
+            } catch (error) {
+                console.error('Error rendering dashboard:', error);
+                const container = document.getElementById('react-dashboard-root');
+                if (container) {
+                    container.innerHTML = '<div class="placeholder-text"><p>Error rendering dashboard: ' + error.message + '</p><p>Error stack: ' + error.stack + '</p></div>';
                 }
             }
         }
@@ -4238,10 +4675,10 @@ input:checked + .slider:before {
         }
 
         function resetUI(isFullReset = false) {
-            previewSection.classList.add('hidden'); 
-            sheetTabsContainer.innerHTML = '';
-            previewTable.innerHTML = '';
-            uploadBtn.disabled = true; 
+            if (previewSection) previewSection.classList.add('hidden'); 
+            if (sheetTabsContainer) sheetTabsContainer.innerHTML = '';
+            if (previewTable) previewTable.innerHTML = '';
+            if (uploadBtn) uploadBtn.disabled = true; 
             sheetsData = {}; 
             sheetsMetadata = {}; 
             currentSheetName = '';
@@ -4250,21 +4687,21 @@ input:checked + .slider:before {
             const headerInfo = document.getElementById('header-info');
             if (headerInfo) headerInfo.classList.add('hidden');
             
-            dropZone.classList.remove('error');
-            if (!isFullReset) {
+            if (dropZone) dropZone.classList.remove('error');
+            if (!isFullReset && alertContainer) {
                 alertContainer.innerHTML = '';
             }
             
             if (isFullReset) {
-                fileInput.value = '';
-                dropZone.innerHTML = DROP_ZONE_DEFAULT_HTML;
+                if (fileInput) fileInput.value = '';
+                if (dropZone) dropZone.innerHTML = DROP_ZONE_DEFAULT_HTML;
             }
             
             // dashboardSubTabBtn.disabled = true;
             
             // Reset uploaded data tab if no collections exist
             const uploadedCollections = JSON.parse(localStorage.getItem('uploadedCollections') || '[]');
-            uploadedDataSubTabBtn.disabled = uploadedCollections.length === 0;
+            if (uploadedDataSubTabBtn) uploadedDataSubTabBtn.disabled = uploadedCollections.length === 0;
             
             // Reset Excel tab if no collections exist
             if (excelSubTabBtn) {
@@ -4272,18 +4709,18 @@ input:checked + .slider:before {
             }
             
             switchDataSubView('ingest');
-            totalSheetsStat.textContent = '0'; 
-            totalRowsStat.textContent = '0'; 
-            totalColsStat.textContent = '0';
+            if (totalSheetsStat) totalSheetsStat.textContent = '0'; 
+            if (totalRowsStat) totalRowsStat.textContent = '0'; 
+            if (totalColsStat) totalColsStat.textContent = '0';
             if (rowsPieChart) { rowsPieChart.destroy(); rowsPieChart = null; }
             if (typesPieChart) { typesPieChart.destroy(); typesPieChart = null; }
 
-            columnAnalysisSection.classList.add('hidden');
-            analysisResults.classList.add('hidden');
-            analysisPlaceholder.classList.remove('hidden');
+            if (columnAnalysisSection) columnAnalysisSection.classList.add('hidden');
+            if (analysisResults) analysisResults.classList.add('hidden');
+            if (analysisPlaceholder) analysisPlaceholder.classList.remove('hidden');
             if (analysisChart) { analysisChart.destroy(); analysisChart = null; }
-            sheetSelector.innerHTML = ''; 
-            columnSelector.innerHTML = '';
+            if (sheetSelector) sheetSelector.innerHTML = ''; 
+            if (columnSelector) columnSelector.innerHTML = '';
         }
 
         function updateTargetTableInfo(sheetName) {
@@ -4666,7 +5103,84 @@ input:checked + .slider:before {
                 if (visualizationLoading) visualizationLoading.classList.add('hidden');
             }
         }
+        
+        // Ensure React is properly attached to window object
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof React !== 'undefined' && typeof window.React === 'undefined') {
+                window.React = React;
+            }
+            if (typeof ReactDOM !== 'undefined' && typeof window.ReactDOM === 'undefined') {
+                window.ReactDOM = ReactDOM;
+            }
+            if (typeof Chart !== 'undefined' && typeof window.Chart === 'undefined') {
+                window.Chart = Chart;
+            }
+        });
+        
+        // Additional React initialization check
+        window.addEventListener('load', function() {
+            console.log('Window load event fired');
+            // Final check to ensure React is available
+            if (typeof window.React === 'undefined' && typeof React !== 'undefined') {
+                console.log('Attaching React to window object in load event');
+                window.React = React;
+            }
+            if (typeof window.ReactDOM === 'undefined' && typeof ReactDOM !== 'undefined') {
+                console.log('Attaching ReactDOM to window object in load event');
+                window.ReactDOM = ReactDOM;
+            }
+            if (typeof window.Chart === 'undefined' && typeof Chart !== 'undefined') {
+                console.log('Attaching Chart.js to window object in load event');
+                window.Chart = Chart;
+            }
+            
+            // If we're on the dashboard tab, try to render the component
+            const dashboardTab = document.getElementById('dashboard-subtab-btn');
+            const dashboardSubView = document.getElementById('dashboard-subview');
+            
+            if (dashboardTab && dashboardTab.classList.contains('active') && dashboardSubView && !dashboardSubView.classList.contains('hidden')) {
+                console.log('Dashboard tab is active, attempting to render component');
+                // Small delay to ensure everything is loaded
+                setTimeout(() => {
+                    if (typeof renderDashboardComponent === 'function') {
+                        renderDashboardComponent();
+                    }
+                }, 500);
+            }
+        });
+        
+        // Load enhanced dashboard component
+        const script = document.createElement('script');
+        script.src = 'enhanced_dashboard.js';
+        script.onload = function() {
+            console.log('Enhanced dashboard component loaded');
+        };
+        document.head.appendChild(script);
+        
+        // Additional check for React availability after all scripts are loaded
+        setTimeout(function() {
+            if (typeof window.React === 'undefined' && typeof React !== 'undefined') {
+                window.React = React;
+            }
+            if (typeof window.ReactDOM === 'undefined' && typeof ReactDOM !== 'undefined') {
+                window.ReactDOM = ReactDOM;
+            }
+            if (typeof window.Chart === 'undefined' && typeof Chart !== 'undefined') {
+                window.Chart = Chart;
+            }
+            
+            // If dashboard is currently visible, try to render it
+            const dashboardContainer = document.getElementById('dashboard-container');
+            if (dashboardContainer && !dashboardContainer.classList.contains('hidden')) {
+                console.log('Dashboard container is visible, attempting to render component after timeout');
+                // Try to render the enhanced dashboard
+                if (typeof renderEnhancedDashboard === 'function') {
+                    renderEnhancedDashboard();
+                } else if (typeof renderDashboardComponent === 'function') {
+                    renderDashboardComponent();
+                }
+            }
+        }, 1000);
     </script>
 </body>
-</html>
 </html>
